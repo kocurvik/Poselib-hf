@@ -10,10 +10,6 @@ include(${PROJECT_SOURCE_DIR}/cmake/SetEnv.cmake)
 # Eigen
 find_package(Eigen3)
 
-set(Torch_DIR /mnt/d/Research/code/libtorch/share/cmake/Torch)
-find_package(Torch REQUIRED)
-include_directories(${TORCH_INCLUDE_DIRS})
-
 # Library sources
 add_subdirectory(${LIBRARY_FOLDER})
 

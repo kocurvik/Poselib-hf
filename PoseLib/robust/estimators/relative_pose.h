@@ -71,25 +71,23 @@ class ThreeViewRelativePoseEstimator {
   public:
     ThreeViewRelativePoseEstimator(const RansacOptions &ransac_opt, const std::vector<Point2D> &points2D_1,
                                    const std::vector<Point2D> &points2D_2, const std::vector<Point2D> &points2D_3                                   )
-        : sample_sz((ransac_opt.sample_sz == 0) ? 5 : ransac_opt.sample_sz), num_data(points2D_1.size()), opt(ransac_opt), x1(points2D_1), x2(points2D_2), x3(points2D_3),
+        : num_data(points2D_1.size()), opt(ransac_opt), x1(points2D_1), x2(points2D_2), x3(points2D_3),
         sampler(num_data, sample_sz, opt.seed, opt.progressive_sampling, opt.max_prosac_iterations) {
-        x1n.resize(5);
-        x2n.resize(5);
+        x1n.resize(sample_sz);
+        x2n.resize(sample_sz);
         x1s.resize(sample_sz_13);
         x2s.resize(sample_sz_13);
         x3s.resize(sample_sz_13);
         sample.resize(sample_sz);
-        if (opt.use_net || opt.init_net){
-            module = torch::jit::load("res/epoch28_sampson.pt");
-        }
     }
 
     void generate_models(std::vector<ThreeViewCameraPose> *models);
+    void estimate_models(std::vector<ThreeViewCameraPose> *models);
     double score_model(const ThreeViewCameraPose &three_view_pose, size_t *inlier_count) const;
     void refine_model(ThreeViewCameraPose *three_view_pose) const;
     void inner_refine(ThreeViewCameraPose *three_view_pose) const;
 
-    const size_t sample_sz;
+    const size_t sample_sz = 5;
     const size_t sample_sz_13 = 3;
     const size_t num_data;
 
@@ -104,19 +102,6 @@ class ThreeViewRelativePoseEstimator {
     // pre-allocated vectors for sampling
     std::vector<Eigen::Vector3d> x1n, x2n, x1s, x2s, x3s;
     std::vector<size_t> sample;
-
-    void estimate_models(std::vector<ThreeViewCameraPose> *models);
-    void triangle_calc(double mx, double my, int &idx, double &scale);
-    void delta(double mx, double my, std::vector<ThreeViewCameraPose> *models);
-    int normalize(std::vector<Eigen::Vector3f> &P, std::vector<Eigen::Vector3f> &Q, std::vector<Eigen::Vector2f> &P1,
-                   std::vector<Eigen::Vector2f> &Q1, Eigen::Matrix3f &CP1, Eigen::Matrix3f &CQ1) const;
-
-    int normalize(std::vector<Eigen::Vector3f> &P, std::vector<Eigen::Vector3f> &Q, std::vector<Eigen::Vector3f> &T,
-                  std::vector<Eigen::Vector2f> &P1, std::vector<Eigen::Vector2f> &Q1, std::vector<Eigen::Vector2f> &T1,
-                  Eigen::Matrix3f &CP1, Eigen::Matrix3f &CQ1, Eigen::Matrix3f &CT1) const;
-
-    Eigen::Vector3d get_network_point();
-    void generate_nn_init_delta_models(std::vector<ThreeViewCameraPose> *models);
 };
 
 class ThreeViewSharedFocalRelativePoseEstimator {
@@ -124,25 +109,23 @@ class ThreeViewSharedFocalRelativePoseEstimator {
     ThreeViewSharedFocalRelativePoseEstimator(const RansacOptions &ransac_opt, const std::vector<Point2D> &points2D_1,
                                               const std::vector<Point2D> &points2D_2,
                                               const std::vector<Point2D> &points2D_3)
-        : sample_sz((ransac_opt.sample_sz == 0) ? 6 : ransac_opt.sample_sz), num_data(points2D_1.size()),
-          opt(ransac_opt), x1(points2D_1), x2(points2D_2), x3(points2D_3),
+        : num_data(points2D_1.size()), opt(ransac_opt), x1(points2D_1), x2(points2D_2), x3(points2D_3),
           sampler(num_data, sample_sz, opt.seed, opt.progressive_sampling, opt.max_prosac_iterations) {
-        x1n.resize(6);
-        x2n.resize(6);
+        x1n.resize(sample_sz);
+        x2n.resize(sample_sz);
         x1s.resize(sample_sz_13);
         x2s.resize(sample_sz_13);
         x3s.resize(sample_sz_13);
         sample.resize(sample_sz);
-        if (opt.use_net || opt.init_net){
-            module = torch::jit::load("res/epoch28_sampson.pt");
-        }
     }
 
     void generate_models(std::vector<ImageTriplet> *models);
+    void estimate_models(std::vector<ImageTriplet> *models);
     double score_model(const ImageTriplet &image_triplet, size_t *inlier_count) const;
     void refine_model(ImageTriplet *image_triplet) const;
+    void inner_refine(ImageTriplet *image_triplet) const;
 
-    const size_t sample_sz;
+    const size_t sample_sz = 6;
     const size_t sample_sz_13 = 3;
     const size_t num_data;
 
@@ -157,20 +140,6 @@ class ThreeViewSharedFocalRelativePoseEstimator {
     // pre-allocated vectors for sampling
     std::vector<Eigen::Vector3d> x1n, x2n, x1s, x2s, x3s;
     std::vector<size_t> sample;
-
-    void estimate_models(std::vector<ImageTriplet> *models);
-    void delta(std::vector<ImageTriplet> *models);
-
-    void triangle_calc(double mx, double my, int idx_t, int &idx, double &scale);
-
-    void inner_refine(ImageTriplet *image_triplet) const;
-
-    Eigen::Vector3d get_network_point(int idx_t);
-
-    int normalize(std::vector<Eigen::Vector3f> &P, std::vector<Eigen::Vector3f> &Q, std::vector<Eigen::Vector3f> &T,
-                  std::vector<Eigen::Vector2f> &P1, std::vector<Eigen::Vector2f> &Q1, std::vector<Eigen::Vector2f> &T1,
-                  Eigen::Matrix3f &CP1, Eigen::Matrix3f &CQ1, Eigen::Matrix3f &CT1) const;
-    void generate_nn_init_delta_models(std::vector<ImageTriplet> *models);
 };
 
 class SharedFocalRelativePoseEstimator {
