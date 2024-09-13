@@ -91,9 +91,7 @@ set(HEADERS_PUBLIC
     misc/essential.h
     misc/re3q3.h
     misc/decompositions.h
-    misc/Polynomial.h
-    misc/PolynomialInternal.h
-    robust.h
+        robust.h
     types.h
     camera_pose.h
     alignment.h

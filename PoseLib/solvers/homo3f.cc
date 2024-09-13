@@ -3,7 +3,6 @@
 //
 
 #include "PoseLib/misc/sturm.h"
-#include "PoseLib/misc/Polynomial.h"
 #include <Eigen/Core>
 
 namespace poselib {
@@ -13181,33 +13180,33 @@ std::vector<double> solver_homo3f(Eigen::Matrix3d &H12, Eigen::Matrix3d &H13) {
                                                 d0, d1, d2, d3, d4, d5);
 
 
-    polynomial::Polynomial<9> h(coeffs);
-
-    std::vector<double> roots;
-    h.realRootsSturm(0, 10, roots);
-
-    std::vector<double> sols;
-    sols.reserve(roots.size());
-    for (size_t i = 0; i < roots.size(); ++i) {
-        if (roots[i] > 0.0) {
-            sols.emplace_back(std::sqrt(roots[i]));
-        }
-    }
-
-//    double roots[9];
-//    double p[10];
-//    for (int i = 0; i < 10; ++i){
-//        p[9 - i] = coeffs[i];
-//    }
-//    int nroots = sturm::bisect_sturm<9>(p, roots, 1e-12);
+//    polynomial::Polynomial<9> h(coeffs);
+//
+//    std::vector<double> roots;
+//    h.realRootsSturm(0, 10, roots);
 //
 //    std::vector<double> sols;
-//    sols.reserve(nroots);
-//    for (int i = 0; i < nroots; ++i) {
+//    sols.reserve(roots.size());
+//    for (size_t i = 0; i < roots.size(); ++i) {
 //        if (roots[i] > 0.0) {
 //            sols.emplace_back(std::sqrt(roots[i]));
 //        }
 //    }
+
+    double roots[9];
+    double p[10];
+    for (int i = 0; i < 10; ++i){
+        p[9 - i] = coeffs[i];
+    }
+    int nroots = sturm::bisect_sturm<9>(p, roots, 1e-12);
+
+    std::vector<double> sols;
+    sols.reserve(nroots);
+    for (int i = 0; i < nroots; ++i) {
+        if (roots[i] > 0.0 and roots[i] < 100) {
+            sols.emplace_back(std::sqrt(roots[i]));
+        }
+    }
 
     return sols;
 }
