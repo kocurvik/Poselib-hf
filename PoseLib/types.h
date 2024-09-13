@@ -51,15 +51,12 @@ struct RansacOptions {
     // Whether we should use real focal length checking: https://arxiv.org/abs/2311.16304
     // Assumes that principal points of both cameras are at origin.
     bool real_focal_check = false;
-    size_t sample_sz = 0;
     size_t inner_refine = 0;
     bool threeview_check = false;
-    double delta = 0.0;
+    bool use_homography = false;
     bool use_hc = false;
-    bool use_net = false;
-    bool init_net = false;
-    bool oracle = false;
-    Eigen::Matrix3d gt_E = Eigen::Matrix3d::Zero();
+    bool scaled_relpose = false;
+    bool use_p3p = false;
 };
 
 struct RansacStats {

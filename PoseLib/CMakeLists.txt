@@ -29,6 +29,7 @@ set(SOURCES
     solvers/gen_relpose_5p1pt.cc
     solvers/gen_relpose_6pt.cc
     solvers/homography_4pt.cc
+    solvers/homo3f.cc
     solvers/threeview_hc.cc
     misc/qep.cc
     misc/univariate.cc
@@ -45,6 +46,7 @@ set(SOURCES
     robust/estimators/relative_pose.cc
     robust/estimators/hybrid_pose.cc
     robust/estimators/homography.cc
+    robust/estimators/homography_focal.cc
 )
 
 # Set HEADERS_PUBLIC variable
@@ -79,6 +81,7 @@ set(HEADERS_PUBLIC
     solvers/gen_relpose_5p1pt.h
     solvers/gen_relpose_6pt.h
     solvers/homography_4pt.h
+    solvers/homo3f.h
     solvers/threeview_hc.h
     misc/quaternion.h
     misc/colmap_models.h
@@ -88,6 +91,8 @@ set(HEADERS_PUBLIC
     misc/essential.h
     misc/re3q3.h
     misc/decompositions.h
+    misc/Polynomial.h
+    misc/PolynomialInternal.h
     robust.h
     types.h
     camera_pose.h
@@ -103,6 +108,7 @@ set(HEADERS_PUBLIC
     robust/estimators/relative_pose.h
     robust/estimators/hybrid_pose.h
     robust/estimators/homography.h
+    robust/estimators/homography_focal.h
 )
 
 # Set HEADERS_PRIVATE variable

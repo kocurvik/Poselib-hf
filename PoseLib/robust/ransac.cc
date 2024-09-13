@@ -120,6 +120,7 @@ ransac_3v_relpose(const std::vector<Point2D> &x1, const std::vector<Point2D> &x2
         stats = ransac<ThreeViewRelativePoseEstimator>(estimator, opt, three_view_pose);
     }
 
+
     get_inliers(*three_view_pose, x1, x2, x3, opt.max_epipolar_error * opt.max_epipolar_error, best_inliers);
 
     return stats;
@@ -134,11 +135,16 @@ RansacStats ransac_3v_shared_focal_relpose(const std::vector<Point2D> &x1, const
     image_triplet->poses.pose13.t.setZero();
     image_triplet->camera = Camera("SIMPLE_PINHOLE", std::vector<double>{1.0, 0.0, 0.0}, -1, -1);
 
-    ThreeViewSharedFocalRelativePoseEstimator estimator(opt, x1, x2, x3);
-    RansacStats stats = ransac<ThreeViewSharedFocalRelativePoseEstimator>(estimator, opt, image_triplet);
+    if (opt.scaled_relpose) {
+        ThreeViewSharedFocalRelativePoseEstimator estimator(opt, x1, x2, x3);
+        RansacStats stats = ransac<ThreeViewSharedFocalRelativePoseEstimator>(estimator, opt, image_triplet);
+        get_inliers(*image_triplet, x1, x2, x3, opt.max_epipolar_error * opt.max_epipolar_error, best_inliers, true);
+        return stats;
+    }
 
-    get_inliers(*image_triplet, x1, x2, x3, opt.max_epipolar_error * opt.max_epipolar_error, best_inliers);
-
+    ThreeViewSharedFocalUnscaledRelativePoseEstimator estimator(opt, x1, x2, x3);
+    RansacStats stats = ransac<ThreeViewSharedFocalUnscaledRelativePoseEstimator>(estimator, opt, image_triplet);
+    get_inliers(*image_triplet, x1, x2, x3, opt.max_epipolar_error * opt.max_epipolar_error, best_inliers, false);
     return stats;
 }
 

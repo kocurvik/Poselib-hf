@@ -171,6 +171,44 @@ double compute_sampson_msac_score(const Eigen::Matrix3d &E, const std::vector<Po
     return score;
 }
 
+double compute_sampson_msac_score(const Eigen::Matrix3d &E, const std::vector<Point2D> &x1,
+                                  const std::vector<Point2D> &x2, double sq_threshold, std::vector<char> *inliers) {
+    inliers->reserve(x1.size());
+
+    // For some reason this is a lot faster than just using nice Eigen expressions...
+    const double E0_0 = E(0, 0), E0_1 = E(0, 1), E0_2 = E(0, 2);
+    const double E1_0 = E(1, 0), E1_1 = E(1, 1), E1_2 = E(1, 2);
+    const double E2_0 = E(2, 0), E2_1 = E(2, 1), E2_2 = E(2, 2);
+
+    double score = 0.0;
+    for (size_t k = 0; k < x1.size(); ++k) {
+        const double x1_0 = x1[k](0), x1_1 = x1[k](1);
+        const double x2_0 = x2[k](0), x2_1 = x2[k](1);
+
+        const double Ex1_0 = E0_0 * x1_0 + E0_1 * x1_1 + E0_2;
+        const double Ex1_1 = E1_0 * x1_0 + E1_1 * x1_1 + E1_2;
+        const double Ex1_2 = E2_0 * x1_0 + E2_1 * x1_1 + E2_2;
+
+        const double Ex2_0 = E0_0 * x2_0 + E1_0 * x2_1 + E2_0;
+        const double Ex2_1 = E0_1 * x2_0 + E1_1 * x2_1 + E2_1;
+        // const double Ex2_2 = E0_2 * x2_0 + E1_2 * x2_1 + E2_2;
+
+        const double C = x2_0 * Ex1_0 + x2_1 * Ex1_1 + Ex1_2;
+        const double Cx = Ex1_0 * Ex1_0 + Ex1_1 * Ex1_1;
+        const double Cy = Ex2_0 * Ex2_0 + Ex2_1 * Ex2_1;
+        const double r2 = C * C / (Cx + Cy);
+
+        if (r2 < sq_threshold) {
+            (*inliers)[k] = true;
+            score += r2;
+        } else {
+            (*inliers)[k] = false;
+            score += sq_threshold;
+        }
+    }
+    return score;
+}
+
 double compute_homography_msac_score(const Eigen::Matrix3d &H, const std::vector<Point2D> &x1,
                                      const std::vector<Point2D> &x2, double sq_threshold, size_t *inlier_count) {
     *inlier_count = 0;
@@ -345,10 +383,10 @@ int get_inliers(const ThreeViewCameraPose &three_view_pose, const std::vector<Po
     return count;
 }
 
-int get_inliers(const ImageTriplet &image_triplet, const std::vector<Point2D> &x1, const std::vector<Point2D> &x2, const std::vector<Point2D> &x3, double sq_threshold, std::vector<char> *inliers){
+int get_inliers(const ImageTriplet &image_triplet, const std::vector<Point2D> &x1, const std::vector<Point2D> &x2,
+                const std::vector<Point2D> &x3, double sq_threshold, std::vector<char> *inliers, bool scaled) {
     std::vector<char> best_inliers12;
     std::vector<char> best_inliers13;
-    std::vector<char> best_inliers23;
 
     inliers->resize(x1.size());
 
@@ -356,21 +394,31 @@ int get_inliers(const ImageTriplet &image_triplet, const std::vector<Point2D> &x
     Eigen::Matrix3d F12, F13, F23;
     essential_from_motion(image_triplet.poses.pose12, &F12);
     essential_from_motion(image_triplet.poses.pose13, &F13);
-    essential_from_motion(image_triplet.poses.pose23(), &F23);
     F12 = K_inv * F12 * K_inv;
     F13 = K_inv * F13 * K_inv;
-    F23 = K_inv * F23 * K_inv;
 
     get_inliers(F12, x1, x2, sq_threshold, &best_inliers12);
     get_inliers(F13, x1, x3, sq_threshold, &best_inliers13);
-    get_inliers(F23, x2, x3, sq_threshold, &best_inliers23);
 
     int count = 0;
     bool val;
 
+    if (scaled) {
+        std::vector<char> best_inliers23;
+        essential_from_motion(image_triplet.poses.pose23(), &F23);
+        F23 = K_inv * F23 * K_inv;
+        get_inliers(F23, x2, x3, sq_threshold, &best_inliers23);
+        for (size_t i = 0; i < x1.size(); i++){
+            val = (best_inliers12[i] and best_inliers13[i]) and best_inliers23[i];
+            (*inliers)[i] = val;
+            if (val)
+                count++;
+        }
+        return count;
+    }
+
     for (size_t i = 0; i < x1.size(); i++){
-//        std::cout << "At: " << i << ": " << best_inliers12[i] << ", " << best_inliers13[i] << ", " << best_inliers23[i] << std::endl;
-        val = (best_inliers12[i] and best_inliers13[i]) and best_inliers23[i];
+        val = (best_inliers12[i] and best_inliers13[i]);
         (*inliers)[i] = val;
         if (val)
             count++;

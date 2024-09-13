@@ -29,8 +29,6 @@
 #ifndef POSELIB_ROBUST_ESTIMATORS_RELATIVE_POSE_H
 #define POSELIB_ROBUST_ESTIMATORS_RELATIVE_POSE_H
 
-#include <torch/csrc/jit/api/module.h>
-#include <torch/csrc/jit/serialization/import.h>
 #include "PoseLib/camera_pose.h"
 #include "PoseLib/robust/sampling.h"
 #include "PoseLib/robust/utils.h"
@@ -96,7 +94,6 @@ class ThreeViewRelativePoseEstimator {
     const std::vector<Point2D> &x1;
     const std::vector<Point2D> &x2;
     const std::vector<Point2D> &x3;
-    torch::jit::script::Module module;
 
     RandomSampler sampler;
     // pre-allocated vectors for sampling
@@ -109,10 +106,12 @@ class ThreeViewSharedFocalRelativePoseEstimator {
     ThreeViewSharedFocalRelativePoseEstimator(const RansacOptions &ransac_opt, const std::vector<Point2D> &points2D_1,
                                               const std::vector<Point2D> &points2D_2,
                                               const std::vector<Point2D> &points2D_3)
-        : num_data(points2D_1.size()), opt(ransac_opt), x1(points2D_1), x2(points2D_2), x3(points2D_3),
+        : sample_sz(ransac_opt.use_homography ? 4 : 6),
+          num_data(points2D_1.size()), opt(ransac_opt), x1(points2D_1), x2(points2D_2), x3(points2D_3),
           sampler(num_data, sample_sz, opt.seed, opt.progressive_sampling, opt.max_prosac_iterations) {
         x1n.resize(sample_sz);
         x2n.resize(sample_sz);
+        x3n.resize(sample_sz);
         x1s.resize(sample_sz_13);
         x2s.resize(sample_sz_13);
         x3s.resize(sample_sz_13);
@@ -120,12 +119,14 @@ class ThreeViewSharedFocalRelativePoseEstimator {
     }
 
     void generate_models(std::vector<ImageTriplet> *models);
-    void estimate_models(std::vector<ImageTriplet> *models);
+    void estimate_homography(std::vector<ImageTriplet> *models);
+    void estimate_homography_p3p(std::vector<ImageTriplet> *models);
+    void estimate_relpose(std::vector<ImageTriplet> *models);
     double score_model(const ImageTriplet &image_triplet, size_t *inlier_count) const;
     void refine_model(ImageTriplet *image_triplet) const;
     void inner_refine(ImageTriplet *image_triplet) const;
 
-    const size_t sample_sz = 6;
+    const size_t sample_sz;
     const size_t sample_sz_13 = 3;
     const size_t num_data;
 
@@ -134,11 +135,49 @@ class ThreeViewSharedFocalRelativePoseEstimator {
     const std::vector<Point2D> &x1;
     const std::vector<Point2D> &x2;
     const std::vector<Point2D> &x3;
-    torch::jit::script::Module module;
 
     RandomSampler sampler;
     // pre-allocated vectors for sampling
-    std::vector<Eigen::Vector3d> x1n, x2n, x1s, x2s, x3s;
+    std::vector<Eigen::Vector3d> x1n, x2n, x3n, x1s, x2s, x3s;
+    std::vector<size_t> sample;
+};
+
+class ThreeViewSharedFocalUnscaledRelativePoseEstimator {
+  public:
+    ThreeViewSharedFocalUnscaledRelativePoseEstimator(const RansacOptions &ransac_opt,
+                                                      const std::vector<Point2D> &points2D_1,
+                                                      const std::vector<Point2D> &points2D_2,
+                                                      const std::vector<Point2D> &points2D_3)
+        : sample_sz(ransac_opt.use_homography ? 4 : 6), sample_sz_13(ransac_opt.use_homography ? 4 : 5),
+          num_data(points2D_1.size()), opt(ransac_opt), x1(points2D_1), x2(points2D_2), x3(points2D_3),
+          sampler(num_data, sample_sz, opt.seed, opt.progressive_sampling, opt.max_prosac_iterations) {
+        x1n.resize(sample_sz);
+        x2n.resize(sample_sz);
+        x3n.resize(sample_sz_13);
+        x1s.resize(sample_sz_13);
+        x3s.resize(sample_sz_13);
+        sample.resize(sample_sz);
+    }
+
+    void generate_models(std::vector<ImageTriplet> *models);
+    void estimate_models_relpose(std::vector<ImageTriplet> *models);
+    void estimate_models_homography(std::vector<ImageTriplet> *models);
+    double score_model(const ImageTriplet &image_triplet, size_t *inlier_count) const;
+    void refine_model(ImageTriplet *image_triplet) const;
+
+    const size_t sample_sz;
+    const size_t sample_sz_13;
+    const size_t num_data;
+
+  private:
+    const RansacOptions &opt;
+    const std::vector<Point2D> &x1;
+    const std::vector<Point2D> &x2;
+    const std::vector<Point2D> &x3;
+
+    RandomSampler sampler;
+    // pre-allocated vectors for sampling
+    std::vector<Eigen::Vector3d> x1n, x2n, x3n, x1s, x3s;
     std::vector<size_t> sample;
 };
 

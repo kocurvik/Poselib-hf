@@ -28,15 +28,17 @@
 
 #include "relative_pose.h"
 
+#include "PoseLib/misc/decompositions.h"
 #include "PoseLib/misc/essential.h"
 #include "PoseLib/robust/bundle.h"
 #include "PoseLib/solvers/gen_relpose_5p1pt.h"
+#include "PoseLib/solvers/homo3f.h"
+#include "PoseLib/solvers/homography_4pt.h"
 #include "PoseLib/solvers/p3p.h"
 #include "PoseLib/solvers/relpose_5pt.h"
 #include "PoseLib/solvers/relpose_6pt_focal.h"
 #include "PoseLib/solvers/relpose_7pt.h"
 
-#include <torch/script.h>
 #include <iostream>
 
 namespace poselib {
@@ -203,20 +205,159 @@ void ThreeViewSharedFocalRelativePoseEstimator::generate_models(std::vector<Imag
         x2n[k] = x2[sample[k]].homogeneous().normalized();
     }
 
+
+    if (opt.use_homography and opt.use_p3p) {
+        estimate_homography_p3p(models);
+        return;
+    }
+    if (opt.use_homography) {
+        estimate_homography(models);
+        return;
+    }
+    estimate_relpose(models);
+}
+
+void ThreeViewSharedFocalRelativePoseEstimator::estimate_homography(std::vector<ImageTriplet> *models){
+    Eigen::Matrix3d H12;
+    int sols_1 = homography_4pt(x1n, x2n, &H12, true);
+    if (sols_1 == 0)
+        return;
+
+    for (size_t k = 0; k < sample_sz; ++k) {
+        x3n[k] = x3[sample[k]].homogeneous().normalized();
+    }
+
+    Eigen::Matrix3d H13;
+    int sols_2 = homography_4pt(x1n, x3n, &H13, true);
+    if (sols_2 ==  0)
+        return;
+
+    std::vector<double> focals = solver_homo3f(H12, H13);
+    focals = solver_homo3f(H12, H13);
+
+    //    std::cout << "Focals size: " << focals.size() << std::endl;
+
+    if (focals.empty())
+        return;
+
+    models->reserve(focals.size() * 4);
+
+    for (double focal : focals) {
+        std::vector<CameraPose> poses12(2), poses13_unscaled(2);
+        std::vector<Eigen::Matrix<double, 3, 1>> normals12(2), normals13(2);
+
+        Eigen::DiagonalMatrix<double, 3> K_inv(1.0, 1.0, focal);
+        Eigen::DiagonalMatrix<double, 3> K(focal, focal, 1.0);
+        Eigen::Matrix3d HH12 = (K_inv * H12 * K), HH13 = (K_inv * H13 * K);
+
+        motion_from_homography_svd(HH12, poses12, normals12);
+        motion_from_homography_svd(HH13, poses13_unscaled, normals13);
+
+        Camera camera("SIMPLE_PINHOLE", {focal, 0, 0}, -1, -1);
+
+        for (const CameraPose& pose12: poses12){
+            Point3D X = triangulate(ImagePair(pose12, camera, camera), x1[sample[0]].homogeneous(), x2[sample[0]].homogeneous());
+
+            if (X(2) < 0.0)
+                continue;
+
+            for (CameraPose pose13 : poses13_unscaled){
+                // We recover scale of the third view
+                const Eigen::Matrix3d R = pose13.R();
+                const Point3D t = pose13.t;
+                Point2D m = x3[sample[0]];
+                double scale = (-X(0)*focal*R(0, 0) + X(0)*m(0)*R(2, 0) - X(1)*focal*R(0, 1)
+                                +X(1)*m(0)*R(2, 1) - X(2)*focal*R(0, 2) + X(2)*m(0)*R(2, 2))/(focal*t(0) - m(0)*t(2));
+//                double scale2 = (-X(0)*focal*R(1, 0) + X(0)*m(1)*R(2, 0) - X(1)*focal*R(1, 1) + X(1)*m(1)*R(2, 1) - X(2)*focal*R(1, 2) + X(2)*m(1)*R(2, 2))/(focal*t(1) - m(1)*t(2));
+//                std::cout << "scale1: " << scale1 << " scale2: " << scale2 << std::endl;
+                pose13.t *= scale;
+
+                ImageTriplet image_triplet = ImageTriplet(ThreeViewCameraPose(pose12, pose13), camera);
+                models->emplace_back(image_triplet);
+            }
+        }
+    }
+}
+
+void ThreeViewSharedFocalRelativePoseEstimator::estimate_homography_p3p(std::vector<ImageTriplet> *models){
+    Eigen::Matrix3d H12;
+    int sols_1 = homography_4pt(x1n, x2n, &H12, true);
+    if (sols_1 == 0)
+        return;
+
+    for (size_t k = 0; k < sample_sz; ++k) {
+        x3n[k] = x3[sample[k]].homogeneous().normalized();
+    }
+
+    Eigen::Matrix3d H13;
+    int sols_2 = homography_4pt(x1n, x3n, &H13, true);
+    if (sols_2 ==  0)
+        return;
+
+    std::vector<double> focals = solver_homo3f(H12, H13);
+    focals = solver_homo3f(H12, H13);
+
+    //    std::cout << "Focals size: " << focals.size() << std::endl;
+
+    if (focals.empty())
+        return;
+
     for (size_t k = 0; k < sample_sz_13; ++k) {
         x1s[k] = x1[sample[k]].homogeneous();
         x2s[k] = x2[sample[k]].homogeneous();
     }
 
-    estimate_models(models);
+    models->reserve(focals.size() * 4);
+
+    for (double focal : focals) {
+        std::vector<CameraPose> poses12(2);
+        std::vector<Eigen::Matrix<double, 3, 1>> normals12(2);
+
+        Eigen::DiagonalMatrix<double, 3> K_inv(1.0, 1.0, focal);
+        Eigen::DiagonalMatrix<double, 3> K(focal, focal, 1.0);
+        Eigen::Matrix3d HH12 = (K_inv * H12 * K);
+
+        motion_from_homography_svd(HH12, poses12, normals12);
+
+        Camera camera("SIMPLE_PINHOLE", {focal, 0, 0}, -1, -1);
+
+        std::vector<Point3D> triangulated_12(3);
+
+        for (CameraPose pose12 : poses12) {
+            ImagePair pair12(pose12, camera, camera);
+
+            for (size_t i = 0; i < sample_sz_13; i++) {
+                triangulated_12[i] = triangulate(pair12, x1s[i], x2s[i]);
+            }
+
+            for (size_t k = 0; k < sample_sz_13; ++k) {
+                Eigen::Vector2d x;
+                camera.unproject(x3[sample[k]], &x);
+                x3s[k] = x.homogeneous().normalized();
+            }
+
+            std::vector<CameraPose> models13;
+
+            p3p(x3s, triangulated_12, &models13);
+
+            for (CameraPose pose13 : models13) {
+                ImageTriplet image_triplet = ImageTriplet(ThreeViewCameraPose(pose12, pose13), camera);
+                models->emplace_back(image_triplet);
+            }
+        }
+    }
 }
 
-void ThreeViewSharedFocalRelativePoseEstimator::estimate_models(std::vector<ImageTriplet> *models) {
+void ThreeViewSharedFocalRelativePoseEstimator::estimate_relpose(std::vector<ImageTriplet> *models){
     std::vector<ImagePair> models12;
     relpose_6pt_focal(x1n, x2n, &models12);
 
-    std::vector<Point3D> triangulated_12;
-    triangulated_12.reserve(3);
+    std::vector<Point3D> triangulated_12(3);
+
+    for (size_t k = 0; k < sample_sz_13; ++k) {
+        x1s[k] = x1[sample[k]].homogeneous();
+        x2s[k] = x2[sample[k]].homogeneous();
+    }
 
     for (ImagePair pair12 : models12){
         for (size_t i = 0; i < sample_sz_13; i++){
@@ -243,6 +384,7 @@ void ThreeViewSharedFocalRelativePoseEstimator::estimate_models(std::vector<Imag
                 std::vector<Point2D> x3c = {x3[sample[3]]};
 
                 Eigen::DiagonalMatrix<double, 3> K_inv(1, 1, image_triplet.camera.focal());
+
                 Eigen::Matrix3d F13, F23;
                 essential_from_motion(image_triplet.poses.pose13, &F13);
                 essential_from_motion(image_triplet.poses.pose23(), &F23);
@@ -283,9 +425,6 @@ void ThreeViewSharedFocalRelativePoseEstimator::inner_refine(ImageTriplet *image
 }
 
 double ThreeViewSharedFocalRelativePoseEstimator::score_model(const ImageTriplet &image_triplet, size_t *inlier_count) const {
-    size_t inlier_count12, inlier_count13, inlier_count23;
-    // TODO: calc inliers better w/o redundant computation
-
     Eigen::DiagonalMatrix<double, 3> K_inv(1, 1, image_triplet.camera.focal());
     Eigen::Matrix3d F12, F13, F23;
     essential_from_motion(image_triplet.poses.pose12, &F12);
@@ -294,12 +433,24 @@ double ThreeViewSharedFocalRelativePoseEstimator::score_model(const ImageTriplet
     F12 = K_inv * F12 * K_inv;
     F13 = K_inv * F13 * K_inv;
     F23 = K_inv * F23 * K_inv;
-    double score12 = compute_sampson_msac_score(F12, x1, x2, opt.max_epipolar_error * opt.max_epipolar_error, &inlier_count12);
-    double score13 = compute_sampson_msac_score(F13, x1, x3, opt.max_epipolar_error * opt.max_epipolar_error, &inlier_count13);
-    double score23 = compute_sampson_msac_score(F23, x2, x3, opt.max_epipolar_error * opt.max_epipolar_error, &inlier_count23);
 
-    std::vector<char> inliers;
-    *inlier_count = get_inliers(image_triplet, x1, x2, x3, opt.max_epipolar_error * opt.max_epipolar_error, &inliers);
+    std::vector<char> inliers12, inliers13, inliers23;
+
+    double sq_t = opt.max_epipolar_error * opt.max_epipolar_error;
+
+    double score12 = compute_sampson_msac_score(F12, x1, x2, sq_t, &inliers12);
+    double score13 = compute_sampson_msac_score(F13, x1, x3, sq_t, &inliers13);
+    double score23 = compute_sampson_msac_score(F23, x2, x3, sq_t, &inliers23);
+
+    *inlier_count = 0;
+
+    bool val;
+    for (size_t i = 0; i < x1.size(); i++){
+        val = (inliers12[i] and inliers13[i]) and inliers23[i];
+        if (val)
+            (*inlier_count)++;
+    }
+
     return score12 + score13 + score23;
 }
 
@@ -315,7 +466,8 @@ void ThreeViewSharedFocalRelativePoseEstimator::refine_model(ImageTriplet *image
 
     // Find approximate inliers and bundle over these with a truncated loss
     std::vector<char> inliers;
-    int num_inl = get_inliers(*image_triplet, x1, x2, x3, 5 * (opt.max_epipolar_error * opt.max_epipolar_error), &inliers);
+    int num_inl =
+        get_inliers(*image_triplet, x1, x2, x3, 5 * (opt.max_epipolar_error * opt.max_epipolar_error), &inliers, true);
     std::vector<Eigen::Vector2d> x1_inlier, x2_inlier, x3_inlier;
     x1_inlier.reserve(num_inl);
     x2_inlier.reserve(num_inl);
@@ -334,6 +486,154 @@ void ThreeViewSharedFocalRelativePoseEstimator::refine_model(ImageTriplet *image
     }
 
     refine_3v_shared_focal_relpose(x1_inlier, x2_inlier, x3_inlier, image_triplet, bundle_opt);
+}
+
+void ThreeViewSharedFocalUnscaledRelativePoseEstimator::generate_models(std::vector<ImageTriplet> *models) {
+    sampler.generate_sample(&sample);
+    for (size_t k = 0; k < sample_sz; ++k) {
+        x1n[k] = x1[sample[k]].homogeneous().normalized();
+        x2n[k] = x2[sample[k]].homogeneous().normalized();
+    }
+
+    if (opt.use_homography){
+        estimate_models_homography(models);
+        return;
+    }
+    estimate_models_relpose(models);
+}
+
+void ThreeViewSharedFocalUnscaledRelativePoseEstimator::estimate_models_relpose(std::vector<ImageTriplet> *models) {
+    std::vector<ImagePair> models12;
+    relpose_6pt_focal(x1n, x2n, &models12);
+
+    for (ImagePair pair12 : models12){
+        for (size_t i = 0; i < sample_sz_13; ++i){
+            Point2D xu1, xu3;
+            pair12.camera1.unproject(x1[sample[i]], &xu1);
+            pair12.camera1.unproject(x3[sample[i]], &xu3);
+            x1s[i] = xu1.homogeneous().normalized();
+            x3s[i] = xu3.homogeneous().normalized();
+        }
+
+        std::vector<CameraPose> models13;
+        relpose_5pt(x1s, x3s, &models13);
+        for (CameraPose pose13 : models13){
+            ImageTriplet image_triplet = ImageTriplet(ThreeViewCameraPose(pair12.pose, pose13), pair12.camera1);
+            models->emplace_back(image_triplet);
+        }
+    }
+}
+
+void ThreeViewSharedFocalUnscaledRelativePoseEstimator::estimate_models_homography(std::vector<ImageTriplet> *models) {
+    Eigen::Matrix3d H12;
+    int sols_1 = homography_4pt(x1n, x2n, &H12, true);
+    if (sols_1 == 0)
+        return;
+
+    for (size_t k = 0; k < sample_sz_13; ++k) {
+        x3n[k] = x3[sample[k]].homogeneous().normalized();
+    }
+
+    Eigen::Matrix3d H13;
+    int sols_2 = homography_4pt(x1n, x3n, &H13, true);
+    if (sols_2 ==  0)
+        return;
+
+//    size_t inlier_count12;
+//    double score12 = compute_homography_msac_score(H12, x1, x2, opt.max_reproj_error * opt.max_reproj_error, &inlier_count12);
+//    size_t inlier_count13;
+//    double score13 = compute_homography_msac_score(H13, x1, x3, opt.max_reproj_error * opt.max_reproj_error, &inlier_count13);
+//    std::cout << "H12 inliers: " << inlier_count12 << " score: " << score12 << std::endl;
+//    std::cout << "H13 inliers: " << inlier_count13 << " score: " << score13 << std::endl;
+
+    std::vector<double> focals = solver_homo3f(H12, H13);
+    focals = solver_homo3f(H12, H13);
+
+//    std::cout << "Focals size: " << focals.size() << std::endl;
+
+    models->reserve(focals.size() * 4);
+
+    for (size_t i = 0; i < focals.size(); ++i) {
+        double focal = focals[i];
+//        std::cout << "Focal: " << focal << std::endl;
+        std::vector<CameraPose> poses12, poses13;
+        std::vector<Eigen::Matrix<double, 3, 1>> normals12, normals13;
+        poses12.reserve(2);
+        poses13.reserve(2);
+        normals12.reserve(2);
+        normals13.reserve(2);
+
+        Eigen::DiagonalMatrix<double, 3> K_inv(1.0, 1.0, focal);
+        Eigen::DiagonalMatrix<double, 3> K(focal, focal, 1.0);
+        Eigen::Matrix3d HH12 = (K_inv * H12 * K), HH13 = (K_inv * H13 * K);
+
+        motion_from_homography_svd(HH12, poses12, normals12);
+        motion_from_homography_svd(HH13, poses13, normals13);
+
+        Camera camera("SIMPLE_PINHOLE", {focal, 0, 0}, -1, -1);
+
+        for (const CameraPose& pose12: poses12){
+            for (const CameraPose& pose13: poses13){
+                models->emplace_back(ThreeViewCameraPose(pose12, pose13), camera);
+            }
+        }
+    }
+}
+
+double ThreeViewSharedFocalUnscaledRelativePoseEstimator::score_model(const ImageTriplet &image_triplet,
+                                                                      size_t *inlier_count) const {
+    size_t inlier_count12, inlier_count13;
+
+    Eigen::DiagonalMatrix<double, 3> K_inv(1, 1, image_triplet.camera.focal());
+    Eigen::Matrix3d F12, F13;
+    essential_from_motion(image_triplet.poses.pose12, &F12);
+    essential_from_motion(image_triplet.poses.pose13, &F13);
+    F12 = K_inv * F12 * K_inv;
+    F13 = K_inv * F13 * K_inv;
+    double score12 = compute_sampson_msac_score(F12, x1, x2, opt.max_epipolar_error * opt.max_epipolar_error, &inlier_count12);
+    double score13 = compute_sampson_msac_score(F13, x1, x3, opt.max_epipolar_error * opt.max_epipolar_error, &inlier_count13);
+
+    std::vector<char> inliers;
+    *inlier_count =
+        get_inliers(image_triplet, x1, x2, x3, opt.max_epipolar_error * opt.max_epipolar_error, &inliers, false);
+
+//    std::cout << "Model f: " << image_triplet.camera.focal() << " score: " << score12 + score13 << " inliers: " << *inlier_count << std::endl;
+
+    return score12 + score13;
+}
+
+void ThreeViewSharedFocalUnscaledRelativePoseEstimator::refine_model(ImageTriplet *image_triplet) const {
+    if (opt.lo_iterations == 0)
+        return;
+
+    BundleOptions bundle_opt;
+    bundle_opt.loss_type = BundleOptions::LossType::TRUNCATED;
+    bundle_opt.loss_scale = opt.max_epipolar_error;
+    bundle_opt.max_iterations = opt.lo_iterations;
+//    bundle_opt.verbose = true;
+
+    // Find approximate inliers and bundle over these with a truncated loss
+    std::vector<char> inliers;
+    int num_inl =
+        get_inliers(*image_triplet, x1, x2, x3, 5 * (opt.max_epipolar_error * opt.max_epipolar_error), &inliers, false);
+    std::vector<Eigen::Vector2d> x1_inlier, x2_inlier, x3_inlier;
+    x1_inlier.reserve(num_inl);
+    x2_inlier.reserve(num_inl);
+    x3_inlier.reserve(num_inl);
+
+    if (num_inl <= 4) {
+        return;
+    }
+
+    for (size_t pt_k = 0; pt_k < x1.size(); ++pt_k) {
+        if (inliers[pt_k]) {
+            x1_inlier.push_back(x1[pt_k]);
+            x2_inlier.push_back(x2[pt_k]);
+            x3_inlier.push_back(x3[pt_k]);
+        }
+    }
+
+    refine_3v_shared_focal_unscaled_relpose(x1_inlier, x2_inlier, x3_inlier, image_triplet, bundle_opt);
 }
 
 void SharedFocalRelativePoseEstimator::generate_models(ImagePairVector *models) {

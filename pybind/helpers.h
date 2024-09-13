@@ -39,15 +39,12 @@ void update_ransac_options(const py::dict &input, RansacOptions &ransac_opt) {
     update(input, "progressive_sampling", ransac_opt.progressive_sampling);
     update(input, "max_prosac_iterations", ransac_opt.max_prosac_iterations);
     update(input, "real_focal_check", ransac_opt.real_focal_check);
-    update(input, "sample_sz", ransac_opt.sample_sz);
+    update(input, "use_homography", ransac_opt.use_homography);
     update(input, "use_hc", ransac_opt.use_hc);
-    update(input, "use_net", ransac_opt.use_net);
-    update(input, "init_net", ransac_opt.init_net);
-    update(input, "oracle", ransac_opt.oracle);
-    update(input, "gt_E", ransac_opt.gt_E);
+    update(input, "use_p3p", ransac_opt.use_p3p);
+    update(input, "scaled_relpose", ransac_opt.scaled_relpose);
     update(input, "inner_refine", ransac_opt.inner_refine);
     update(input, "threeview_check", ransac_opt.threeview_check);
-    update(input, "delta", ransac_opt.delta);
 }
 
 void update_bundle_options(const py::dict &input, BundleOptions &bundle_opt) {
@@ -88,11 +85,10 @@ void write_to_dict(const RansacOptions &ransac_opt, py::dict &dict) {
     dict["progressive_sampling"] = ransac_opt.progressive_sampling;
     dict["max_prosac_iterations"] = ransac_opt.max_prosac_iterations;
     dict["real_focal_check"] = ransac_opt.real_focal_check;
+    dict["use_homography"] = ransac_opt.use_homography;
     dict["use_hc"] = ransac_opt.use_hc;
-    dict["use_net"] = ransac_opt.use_net;
-    dict["init_net"] = ransac_opt.init_net;
-    dict["oracle"] = ransac_opt.oracle;
-    dict["gt_E"] = ransac_opt.gt_E;
+    dict["use_p3p"] = ransac_opt.use_p3p;
+    dict["scaled_relpose"] = ransac_opt.scaled_relpose;
 }
 
 void write_to_dict(const BundleOptions &bundle_opt, py::dict &dict) {

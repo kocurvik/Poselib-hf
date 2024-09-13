@@ -1213,7 +1213,7 @@ std::tuple<Camera, Camera, int> focals_from_fundamental_iterative(const Eigen::M
     return std::tuple<Camera, Camera, int>(camera1, camera2, k);
 }
 
-void motion_from_homogrpahy(Eigen::Matrix3d &HH, std::vector<CameraPose> &poses, std::vector<Eigen::Vector3d> &normals) {
+void motion_from_homography_svd(Eigen::Matrix3d &HH, std::vector<CameraPose> &poses, std::vector<Eigen::Vector3d> &normals) {
     if (HH.determinant() < 0.0){
         HH *= -1;
     }

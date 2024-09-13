@@ -809,6 +809,14 @@ std::pair<CameraPose, py::dict> estimate_1D_radial_absolute_pose_wrapper(const s
     output_dict["inliers"] = convert_inlier_vector(inlier_mask);
     return std::make_pair(pose, output_dict);
 }
+
+std::pair<std::vector<CameraPose>, std::vector<Point3D>> motion_from_homography_wrapper(Eigen::Matrix3d &H){
+    std::vector<CameraPose> poses;
+    std::vector<Point3D> normals;
+    motion_from_homography_svd(H, poses, normals);
+    return std::make_pair(poses, normals);
+}
+
 } // namespace poselib
 
 PYBIND11_MODULE(poselib, m) {
@@ -991,6 +999,12 @@ PYBIND11_MODULE(poselib, m) {
           py::arg("initial_pose"), py::arg("camera1_ext"), py::arg("camera1_dict"), py::arg("camera2_ext"),
           py::arg("camera2_dict"), py::arg("bundle_opt") = py::dict(),
           "Generalized relative pose non-linear refinement.");
+
+    m.def("motion_from_homography", &poselib::motion_from_homography_wrapper, py::arg("H"));
+    m.def("solver_H3f", &poselib::solver_homo3f, py::arg("H12"), py::arg("H13"));
+    m.def("focal_from_homography", &poselib::estimate_focal_homography, py::arg("x1_1"), py::arg("x2_1"),
+          py::arg("x1_2"), py::arg("x3_2"), py::arg("pp"), py::arg("iterations"), py::arg("inlier_threshold"),
+          py::arg("distance_threshold"));
 
     m.def("RansacOptions", &poselib::RansacOptions_wrapper, py::arg("opt") = py::dict(), "Options for RANSAC.");
     m.def("BundleOptions", &poselib::BundleOptions_wrapper, py::arg("opt") = py::dict(),

@@ -30,6 +30,8 @@
 
 #include "PoseLib/robust/utils.h"
 
+#include <iostream>
+
 namespace poselib {
 
 RansacStats estimate_absolute_pose(const std::vector<Point2D> &points2D, const std::vector<Point3D> &points3D,
@@ -363,12 +365,6 @@ RansacStats estimate_3v_shared_focal_relative_pose(const std::vector<Point2D> &x
     RansacOptions ransac_opt_scaled = ransac_opt;
     ransac_opt_scaled.max_epipolar_error = ransac_opt.max_epipolar_error / scale;
 
-    if (ransac_opt_scaled.oracle) {
-        Eigen::Matrix3d T;
-        T << scale, 0.0, pp(0), 0.0, scale, pp(1), 0.0, 0.0, 1.0;
-        ransac_opt_scaled.gt_E = T.transpose() * ransac_opt.gt_E * T;
-    }
-
     RansacStats stats = ransac_3v_shared_focal_relpose(x1_norm, x2_norm, x3_norm, ransac_opt_scaled, image_triplet, inliers);
 
     if (stats.num_inliers > 4) {
@@ -390,7 +386,10 @@ RansacStats estimate_3v_shared_focal_relative_pose(const std::vector<Point2D> &x
         BundleOptions bundle_opt_scaled = bundle_opt;
         bundle_opt_scaled.loss_scale = bundle_opt.loss_scale / scale;
 
-         refine_3v_shared_focal_relpose(x1_inliers, x2_inliers, x3_inliers, image_triplet, bundle_opt_scaled);
+        if (ransac_opt.scaled_relpose)
+            refine_3v_shared_focal_relpose(x1_inliers, x2_inliers, x3_inliers, image_triplet, bundle_opt_scaled);
+        else
+            refine_3v_shared_focal_unscaled_relpose(x1_inliers, x2_inliers, x3_inliers, image_triplet, bundle_opt_scaled);
     }
 
     image_triplet->camera.params[0] *= scale;
