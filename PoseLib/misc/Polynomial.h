@@ -14,7 +14,7 @@
 #ifndef POLYNOMIAL_HPP
 #define POLYNOMIAL_HPP
 
-#include "eigen3/unsupported/Eigen/Polynomials"
+#include <unsupported/Eigen/Polynomials>
 #include "PolynomialInternal.h"
 
 #include <Eigen/Core>
