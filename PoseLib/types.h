@@ -57,6 +57,7 @@ struct RansacOptions {
     bool use_hc = false;
     bool scaled_relpose = false;
     bool use_p3p = false;
+    bool use_degensac = false;
 };
 
 struct RansacStats {

@@ -186,10 +186,17 @@ class SharedFocalRelativePoseEstimator {
     SharedFocalRelativePoseEstimator(const RansacOptions &ransac_opt, const std::vector<Point2D> &points2D_1,
                                      const std::vector<Point2D> &points2D_2)
         : num_data(points2D_1.size()), opt(ransac_opt), x1(points2D_1), x2(points2D_2),
-          sampler(num_data, sample_sz, opt.seed, opt.progressive_sampling, opt.max_prosac_iterations) {
+          sampler(num_data, sample_sz, opt.seed, opt.progressive_sampling, opt.max_prosac_iterations),
+          tuples(opt.use_degensac ? std::vector<std::vector<int>>{
+                                        {0, 1, 2, 3, 4},
+                                        {0, 1, 2, 3, 5},
+                                        {0, 1, 2, 4, 5},
+                                        {0, 1, 3, 4, 5},
+                                        {1, 2, 3, 4, 5}} : std::vector<std::vector<int>>()) {
         x1s.resize(sample_sz);
         x2s.resize(sample_sz);
         sample.resize(sample_sz);
+        best_h_inliers = 0;
     }
 
     void generate_models(ImagePairVector *models);
@@ -208,6 +215,11 @@ class SharedFocalRelativePoseEstimator {
     // pre-allocated vectors for sampling
     std::vector<Eigen::Vector3d> x1s, x2s;
     std::vector<size_t> sample;
+
+    const std::vector<std::vector<int>> tuples;
+    size_t best_h_inliers;
+    bool check_h_degeneracy(ImagePairVector *models);
+    void consider_homography(Eigen::Matrix3d &H, ImagePairVector *models);
 };
 
 class GeneralizedRelativePoseEstimator {

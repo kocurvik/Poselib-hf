@@ -31,6 +31,7 @@ set(SOURCES
     solvers/homography_4pt.cc
     solvers/homo3f.cc
     solvers/threeview_hc.cc
+    solvers/plane_parallax_shared_focal.cc
     misc/qep.cc
     misc/univariate.cc
     misc/essential.cc
@@ -83,6 +84,7 @@ set(HEADERS_PUBLIC
     solvers/homography_4pt.h
     solvers/homo3f.h
     solvers/threeview_hc.h
+    solvers/plane_parallax_shared_focal.h
     misc/quaternion.h
     misc/colmap_models.h
     misc/qep.h

@@ -35,6 +35,7 @@
 #include "PoseLib/solvers/homo3f.h"
 #include "PoseLib/solvers/homography_4pt.h"
 #include "PoseLib/solvers/p3p.h"
+#include "PoseLib/solvers/plane_parallax_shared_focal.h"
 #include "PoseLib/solvers/relpose_5pt.h"
 #include "PoseLib/solvers/relpose_6pt_focal.h"
 #include "PoseLib/solvers/relpose_7pt.h"
@@ -642,7 +643,71 @@ void SharedFocalRelativePoseEstimator::generate_models(ImagePairVector *models) 
         x1s[k] = x1[sample[k]].homogeneous().normalized();
         x2s[k] = x2[sample[k]].homogeneous().normalized();
     }
-    relpose_6pt_focal(x1s, x2s, models);
+
+    if (!opt.use_degensac){
+        relpose_6pt_focal(x1s, x2s, models);
+        return;
+    }
+
+//    check_h_degeneracy(models);
+    if (!check_h_degeneracy(models))
+        relpose_6pt_focal(x1s, x2s, models);
+}
+
+bool SharedFocalRelativePoseEstimator::check_h_degeneracy(ImagePairVector *models){
+    std::vector<Point3D > x1h(4), x2h(4);
+    bool degenerate = false;
+    for (std::vector<int> tuple : tuples){
+        for(int i = 0; i < 4; ++i){
+            x1h[i] = x1s[tuple[i]];
+            x2h[i] = x2s[tuple[i]];
+        }
+
+        Eigen::Matrix3d H;
+        if(homography_4pt(x1h, x2h, &H) < 1)
+            continue;
+
+        Point3D xx1 = x1s[tuple[4]] / x1s[tuple[4]](2);
+        Point2D xx2 = x2s[tuple[4]].hnormalized();
+        Point2D Hx1 = (H * xx1).hnormalized();
+        double dist_sq = (Hx1 - xx2).squaredNorm();
+
+        if (dist_sq < opt.max_epipolar_error * opt.max_epipolar_error){
+            degenerate = true;
+            consider_homography(H, models);
+        }
+    }
+    return degenerate;
+}
+
+void SharedFocalRelativePoseEstimator::consider_homography(Eigen::Matrix3d &H, ImagePairVector *models){
+    size_t inlier_count;
+    compute_homography_msac_score(H, x1, x2, opt.max_epipolar_error * opt.max_epipolar_error, &inlier_count);
+    if (inlier_count < best_h_inliers)
+        return;
+
+    best_h_inliers = inlier_count;
+    BundleOptions bundle_opt;
+    bundle_opt.loss_type = BundleOptions::LossType::TRUNCATED;
+    bundle_opt.loss_scale = opt.max_epipolar_error;
+    bundle_opt.max_iterations = 25;
+    Eigen::Matrix3d H_optim = H;
+    refine_homography(x1,x2, &H_optim, bundle_opt);
+
+    compute_homography_msac_score(H_optim, x1, x2, opt.max_epipolar_error * opt.max_epipolar_error, &inlier_count);
+    if (inlier_count > best_h_inliers){
+        best_h_inliers = inlier_count;
+        H = H_optim;
+    }
+
+    std::vector<char> inliers;
+    get_homography_inliers(H, x1, x2, opt.max_epipolar_error * opt.max_epipolar_error, &inliers);
+
+    for(size_t k = 0; k < x1.size(); ++k) {
+        if (!inliers[k]) {
+            plane_parallax_5pt_shared_focal(H, x1[k], x2[k], models);
+        }
+    }
 }
 
 double SharedFocalRelativePoseEstimator::score_model(const ImagePair &image_pair, size_t *inlier_count) const {

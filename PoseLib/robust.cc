@@ -259,6 +259,8 @@ RansacStats estimate_shared_focal_relative_pose(const std::vector<Point2D> &poin
     BundleOptions bundle_opt_scaled = bundle_opt;
     bundle_opt_scaled.loss_scale /= scale;
 
+//    std::cout << "Scaled focal: " << 600 / scale << std::endl;
+
     RansacStats stats = ransac_shared_focal_relpose(x1_norm, x2_norm, ransac_opt_scaled, image_pair, inliers);
 
     if (stats.num_inliers > 6) {

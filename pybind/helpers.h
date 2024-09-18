@@ -42,6 +42,7 @@ void update_ransac_options(const py::dict &input, RansacOptions &ransac_opt) {
     update(input, "use_homography", ransac_opt.use_homography);
     update(input, "use_hc", ransac_opt.use_hc);
     update(input, "use_p3p", ransac_opt.use_p3p);
+    update(input, "use_degensac", ransac_opt.use_degensac);
     update(input, "scaled_relpose", ransac_opt.scaled_relpose);
     update(input, "inner_refine", ransac_opt.inner_refine);
     update(input, "threeview_check", ransac_opt.threeview_check);
@@ -88,6 +89,7 @@ void write_to_dict(const RansacOptions &ransac_opt, py::dict &dict) {
     dict["use_homography"] = ransac_opt.use_homography;
     dict["use_hc"] = ransac_opt.use_hc;
     dict["use_p3p"] = ransac_opt.use_p3p;
+    dict["use_degensac"] = ransac_opt.use_degensac;
     dict["scaled_relpose"] = ransac_opt.scaled_relpose;
 }
 
