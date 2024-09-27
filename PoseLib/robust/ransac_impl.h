@@ -32,8 +32,26 @@
 #include "PoseLib/types.h"
 
 #include <vector>
-
+#include <type_traits>
+#include <iostream>
 namespace poselib {
+
+//template <typename T>
+//class has_degeneracy {
+//    typedef char one;
+//    struct two { char x[2]; };
+//    template <typename C> static one test( decltype(&C::degeneracy));
+//    template <typename C> static two test(...);
+//  public:
+//    enum { value = sizeof(test<T>(0)) == sizeof(char) };
+//};
+
+template <typename T, typename M, typename = std::void_t<>>
+struct has_degeneracy : std::false_type {};
+
+template <typename T, typename M>
+struct has_degeneracy<T, M, std::void_t<decltype(std::declval<T>().degeneracy(std::declval<M*>()))>> : std::true_type {};
+
 
 // Templated LO-RANSAC implementation (inspired by RansacLib from Torsten Sattler)
 template <typename Solver, typename Model = CameraPose>
@@ -71,6 +89,22 @@ RansacStats ransac(Solver &estimator, const RansacOptions &opt, Model *best_mode
             bool better_score = score_msac < best_minimal_msac_score;
 
             if (more_inliers || better_score) {
+                if constexpr (has_degeneracy<Solver, Model>::value) {
+//                if constexpr (std::is_member_function_pointer_v<decltype(&Solver::degenerate)>) {
+                    int status = estimator.degeneracy(&models[i]);
+
+                    // model is degenerate but a new model was found using the degen solver
+                    if (status == 1) {
+                        score_msac = estimator.score_model(models[i], &inlier_count);
+                        more_inliers = inlier_count > best_minimal_inlier_count;
+                        better_score = score_msac < best_minimal_msac_score;
+                    }
+
+                    // model is degenerate but not better than previous best degen model
+                    if (status == 2)
+                        continue;
+                }
+
                 if (more_inliers) {
                     best_minimal_inlier_count = inlier_count;
                 }

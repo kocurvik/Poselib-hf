@@ -108,7 +108,13 @@ class ThreeViewSharedFocalRelativePoseEstimator {
                                               const std::vector<Point2D> &points2D_3)
         : sample_sz(ransac_opt.use_homography ? 4 : 6),
           num_data(points2D_1.size()), opt(ransac_opt), x1(points2D_1), x2(points2D_2), x3(points2D_3),
-          sampler(num_data, sample_sz, opt.seed, opt.progressive_sampling, opt.max_prosac_iterations) {
+          sampler(num_data, sample_sz, opt.seed, opt.progressive_sampling, opt.max_prosac_iterations),
+          tuples(opt.use_degensac ? std::vector<std::vector<int>>{
+                                        {0, 1, 2, 3, 4},
+                                        {0, 1, 2, 3, 5},
+                                        {0, 1, 2, 4, 5},
+                                        {0, 1, 3, 4, 5},
+                                        {1, 2, 3, 4, 5}} : std::vector<std::vector<int>>()){
         x1n.resize(sample_sz);
         x2n.resize(sample_sz);
         x3n.resize(sample_sz);
@@ -116,7 +122,10 @@ class ThreeViewSharedFocalRelativePoseEstimator {
         x2s.resize(sample_sz_13);
         x3s.resize(sample_sz_13);
         sample.resize(sample_sz);
+        best_h_inliers = 0;
+        best_degenerate_model_found = false;
     }
+
 
     void generate_models(std::vector<ImageTriplet> *models);
     void estimate_homography(std::vector<ImageTriplet> *models);
@@ -140,6 +149,13 @@ class ThreeViewSharedFocalRelativePoseEstimator {
     // pre-allocated vectors for sampling
     std::vector<Eigen::Vector3d> x1n, x2n, x3n, x1s, x2s, x3s;
     std::vector<size_t> sample;
+
+    const std::vector<std::vector<int>> tuples;
+    size_t best_h_inliers;
+    double score_model(const ImagePair &image_pair, size_t *inlier_count) const;
+    bool relpose_degeneracy(std::vector<ImagePair> *models);
+    ImagePair best_degenerate_model;
+    bool best_degenerate_model_found;
 };
 
 class ThreeViewSharedFocalUnscaledRelativePoseEstimator {
@@ -202,6 +218,7 @@ class SharedFocalRelativePoseEstimator {
     void generate_models(ImagePairVector *models);
     double score_model(const ImagePair &image_pair, size_t *inlier_count) const;
     void refine_model(ImagePair *image_pair) const;
+    int degeneracy(ImagePair *model);
 
     const size_t sample_sz = 6;
     const size_t num_data;
@@ -218,8 +235,6 @@ class SharedFocalRelativePoseEstimator {
 
     const std::vector<std::vector<int>> tuples;
     size_t best_h_inliers;
-    bool check_h_degeneracy(ImagePairVector *models);
-    void consider_homography(Eigen::Matrix3d &H, ImagePairVector *models);
 };
 
 class GeneralizedRelativePoseEstimator {
