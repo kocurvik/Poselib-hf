@@ -43,9 +43,10 @@ void update_ransac_options(const py::dict &input, RansacOptions &ransac_opt) {
     update(input, "use_hc", ransac_opt.use_hc);
     update(input, "use_p3p", ransac_opt.use_p3p);
     update(input, "use_degensac", ransac_opt.use_degensac);
-    update(input, "scaled_relpose", ransac_opt.scaled_relpose);
     update(input, "inner_refine", ransac_opt.inner_refine);
     update(input, "threeview_check", ransac_opt.threeview_check);
+    update(input, "problem", ransac_opt.problem);
+    update(input, "use_onefocal", ransac_opt.use_onefocal);
 }
 
 void update_bundle_options(const py::dict &input, BundleOptions &bundle_opt) {
@@ -90,7 +91,8 @@ void write_to_dict(const RansacOptions &ransac_opt, py::dict &dict) {
     dict["use_hc"] = ransac_opt.use_hc;
     dict["use_p3p"] = ransac_opt.use_p3p;
     dict["use_degensac"] = ransac_opt.use_degensac;
-    dict["scaled_relpose"] = ransac_opt.scaled_relpose;
+    dict["use_onefocal"] = ransac_opt.use_onefocal;
+    dict["problem"] = ransac_opt.problem;
 }
 
 void write_to_dict(const BundleOptions &bundle_opt, py::dict &dict) {

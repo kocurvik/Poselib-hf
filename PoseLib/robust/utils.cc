@@ -390,12 +390,14 @@ int get_inliers(const ImageTriplet &image_triplet, const std::vector<Point2D> &x
 
     inliers->resize(x1.size());
 
-    Eigen::DiagonalMatrix<double, 3> K_inv(1, 1, image_triplet.camera.focal());
+    Eigen::DiagonalMatrix<double, 3> K1_inv(1, 1, image_triplet.camera1.focal());
+    Eigen::DiagonalMatrix<double, 3> K2_inv(1, 1, image_triplet.camera2.focal());
+    Eigen::DiagonalMatrix<double, 3> K3_inv(1, 1, image_triplet.camera3.focal());
     Eigen::Matrix3d F12, F13, F23;
     essential_from_motion(image_triplet.poses.pose12, &F12);
     essential_from_motion(image_triplet.poses.pose13, &F13);
-    F12 = K_inv * F12 * K_inv;
-    F13 = K_inv * F13 * K_inv;
+    F12 = K2_inv * F12 * K1_inv;
+    F13 = K3_inv * F13 * K1_inv;
 
     get_inliers(F12, x1, x2, sq_threshold, &best_inliers12);
     get_inliers(F13, x1, x3, sq_threshold, &best_inliers13);
@@ -406,7 +408,7 @@ int get_inliers(const ImageTriplet &image_triplet, const std::vector<Point2D> &x
     if (scaled) {
         std::vector<char> best_inliers23;
         essential_from_motion(image_triplet.poses.pose23(), &F23);
-        F23 = K_inv * F23 * K_inv;
+        F23 = K3_inv * F23 * K2_inv;
         get_inliers(F23, x2, x3, sq_threshold, &best_inliers23);
         for (size_t i = 0; i < x1.size(); i++){
             val = (best_inliers12[i] and best_inliers13[i]) and best_inliers23[i];

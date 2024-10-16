@@ -862,7 +862,7 @@ class ThreeViewRelativePoseJacobianAccumulator {
             Eigen::Matrix<double, 1, 11> J12;
             J12.block<1, 3>(0, 0) = dSdE12 * dE12dr12;
             J12.block<1, 2>(0, 3) = dSdE12 * dE12dt12;
-            J12.block<1, 6>(0, 6).setZero();
+            J12.block<1, 6>(0, 5).setZero();
 
             Eigen::Matrix<double, 1, 11> J13;
             J13.block<1, 5>(0, 0).setZero();
@@ -928,7 +928,7 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
 
     double residual(const ImageTriplet &image_triplet) const {
         Eigen::Matrix3d F12, F13, F23;
-        Eigen::DiagonalMatrix<double, 3> K_inv(1, 1, image_triplet.camera.focal());
+        Eigen::DiagonalMatrix<double, 3> K_inv(1, 1, image_triplet.camera1.focal());
         essential_from_motion(image_triplet.poses.pose12, &F12);
         essential_from_motion(image_triplet.poses.pose13, &F13);
         essential_from_motion(image_triplet.poses.pose23(), &F23);
@@ -975,52 +975,52 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
         return cost;
     }
 
-//    double residual(const ImageTriplet &image_triplet, size_t k) const {
-//        Eigen::Matrix3d F12, F13, F23;
-//        Eigen::DiagonalMatrix<double, 3> K_inv(1, 1, image_triplet.camera.focal());
-//        essential_from_motion(image_triplet.poses.pose12, &F12);
-//        essential_from_motion(image_triplet.poses.pose13, &F13);
-//        essential_from_motion(image_triplet.poses.pose23(), &F23);
-//        F12 = K_inv * F12 * K_inv;
-//        F13 = K_inv * F13 * K_inv;
-//        F23 = K_inv * F23 * K_inv;
-//
-//        double cost = 0.0;
-//            // F12
-//            double C12 = x2[k].homogeneous().dot(F12 * x1[k].homogeneous());
-//            double nJc12_sq = (F12.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
-//                              (F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous()).squaredNorm();
-//            double r12_sq = (C12 * C12) / nJc12_sq;
-//            double loss12 = loss_fn.loss(r12_sq);
-//            if (loss12 == 0.0)
-//                return 0.0;
-//
-//            // F13
-//            double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
-//            double nJc13_sq = (F13.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
-//                              (F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
-//
-//            double r13_sq = (C13 * C13) / nJc13_sq;
-//            double loss13 = loss_fn.loss(r13_sq);
-//            if (loss13 == 0.0)
-//                return 0.0;
-//
-//            // F23
-//            double C23 = x3[k].homogeneous().dot(F23 * x2[k].homogeneous());
-//            double nJc23_sq = (F23.block<2, 3>(0, 0) * x2[k].homogeneous()).squaredNorm() +
-//                              (F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
-//
-//            double r23_sq = (C23 * C23) / nJc23_sq;
-//            double loss23 = loss_fn.loss(r23_sq);
-//            if (loss23 == 0.0)
-//                return 0.0;
-//
-//            cost += weights[k] * loss12;
-//            cost += weights[k] * loss13;
-//            cost += weights[k] * loss23;
-//
-//        return cost;
-//    }
+    double residual(const ImageTriplet &image_triplet, size_t k) const {
+        Eigen::Matrix3d F12, F13, F23;
+        Eigen::DiagonalMatrix<double, 3> K_inv(1, 1, image_triplet.camera1.focal());
+        essential_from_motion(image_triplet.poses.pose12, &F12);
+        essential_from_motion(image_triplet.poses.pose13, &F13);
+        essential_from_motion(image_triplet.poses.pose23(), &F23);
+        F12 = K_inv * F12 * K_inv;
+        F13 = K_inv * F13 * K_inv;
+        F23 = K_inv * F23 * K_inv;
+
+        double cost = 0.0;
+            // F12
+            double C12 = x2[k].homogeneous().dot(F12 * x1[k].homogeneous());
+            double nJc12_sq = (F12.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                              (F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous()).squaredNorm();
+            double r12_sq = (C12 * C12) / nJc12_sq;
+            double loss12 = loss_fn.loss(r12_sq);
+            if (loss12 == 0.0)
+                return 0.0;
+
+            // F13
+            double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
+            double nJc13_sq = (F13.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                              (F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
+
+            double r13_sq = (C13 * C13) / nJc13_sq;
+            double loss13 = loss_fn.loss(r13_sq);
+            if (loss13 == 0.0)
+                return 0.0;
+
+            // F23
+            double C23 = x3[k].homogeneous().dot(F23 * x2[k].homogeneous());
+            double nJc23_sq = (F23.block<2, 3>(0, 0) * x2[k].homogeneous()).squaredNorm() +
+                              (F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
+
+            double r23_sq = (C23 * C23) / nJc23_sq;
+            double loss23 = loss_fn.loss(r23_sq);
+            if (loss23 == 0.0)
+                return 0.0;
+
+            cost += weights[k] * loss12;
+            cost += weights[k] * loss13;
+            cost += weights[k] * loss23;
+
+        return cost;
+    }
 
     size_t accumulate(const ImageTriplet &image_triplet, Eigen::Matrix<double, 12, 12> &JtJ,
                       Eigen::Matrix<double, 12, 1> &Jtr) {
@@ -1060,7 +1060,7 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
         R23 = pose23.R();
         essential_from_motion(pose23, &E23);
 
-        double focal = image_triplet.camera.focal();
+        double focal = image_triplet.camera1.focal();
 
         Eigen::DiagonalMatrix<double, 3> K_inv(1.0, 1.0, focal);
         F12 = K_inv * E12 * K_inv;
@@ -1298,9 +1298,10 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
 //            for (int j = 0; j < 12; ++j){
 //                dp.setZero();
 //                dp(j, 0) = eps;
-//                ImageTriplet step_image_triplet = step(dp, image_triplet);
+//                ImageTriplet fwd_image_triplet = step(dp, image_triplet);
+//                ImageTriplet bcw_image_triplet = step(-dp, image_triplet);
 //                dp.setZero();
-//                num_J(0, j) = (residual(step_image_triplet, k) - residual(image_triplet, k)) / eps;
+//                num_J(0, j) = (residual(fwd_image_triplet, k) - residual(bcw_image_triplet, k)) / (2 * eps);
 //            }
 //
 //            std::cout << "Sym J: " << 2 * (weight12 * C12 * inv_nJ_C12 * J12 + weight13 * C13 * inv_nJ_C13 * J13 + weight23 * C23 * inv_nJ_C23 * J23) << std::endl;
@@ -1331,13 +1332,902 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
         pose13_new.q = quat_step_post(image_triplet.poses.pose13.q, dp.block<3, 1>(5, 0));
         pose13_new.t = image_triplet.poses.pose13.t + dp.block<3, 1>(8, 0);
 
-        Camera camera_new = Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera.focal()+ dp(11,0), 0.0, 0.0}, -1, -1);
+        Camera camera_new = Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera1.focal()+ dp(11,0), 0.0, 0.0}, -1, -1);
 
         ImageTriplet image_triplet_new(ThreeViewCameraPose(pose12_new, pose13_new), camera_new);
         return image_triplet_new;
     }
     typedef ImageTriplet param_t;
     static constexpr size_t num_params = 12;
+
+  private:
+    const std::vector<Point2D> &x1;
+    const std::vector<Point2D> &x2;
+    const std::vector<Point2D> &x3;
+    const LossFunction &loss_fn;
+    const ResidualWeightVector &weights;
+    Eigen::Matrix<double, 3, 2> tangent_basis;
+};
+
+template <typename LossFunction, typename ResidualWeightVector = UniformWeightVector>
+class ThreeViewCase2RelativePoseJacobianAccumulator {
+  public:
+    ThreeViewCase2RelativePoseJacobianAccumulator(const std::vector<Point2D> &points2D_1,
+                                                        const std::vector<Point2D> &points2D_2,
+                                                        const std::vector<Point2D> &points2D_3,
+                                                        const LossFunction &l,
+                                                        const ResidualWeightVector &w = ResidualWeightVector())
+        : x1(points2D_1), x2(points2D_2), x3(points2D_3), loss_fn(l), weights(w) {}
+
+    double residual(const ImageTriplet &image_triplet) const {
+        Eigen::Matrix3d F12, F13, F23, E12, E13, E23;
+        Eigen::DiagonalMatrix<double, 3> K1_inv(1, 1, image_triplet.camera1.focal());
+        Eigen::DiagonalMatrix<double, 3> K3_inv(1, 1, image_triplet.camera3.focal());
+        essential_from_motion(image_triplet.poses.pose12, &E12);
+        essential_from_motion(image_triplet.poses.pose13, &E13);
+        essential_from_motion(image_triplet.poses.pose23(), &E23);
+        F12 = K1_inv * E12 * K1_inv;
+        F13 = K3_inv * E13 * K1_inv;
+        F23 = K3_inv * E23 * K1_inv;
+
+        double cost = 0.0;
+        for (size_t k = 0; k < x1.size(); ++k) {
+            // F12
+            double C12 = x2[k].homogeneous().dot(F12 * x1[k].homogeneous());
+            double nJc12_sq = (F12.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                              (F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous()).squaredNorm();
+            double r12_sq = (C12 * C12) / nJc12_sq;
+            double loss12 = loss_fn.loss(r12_sq);
+            if (loss12 == 0.0)
+                continue;
+
+            // F13
+            double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
+            double nJc13_sq = (F13.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                              (F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
+
+            double r13_sq = (C13 * C13) / nJc13_sq;
+            double loss13 = loss_fn.loss(r13_sq);
+            if (loss13 == 0.0)
+                continue;
+
+            // F23
+            double C23 = x3[k].homogeneous().dot(F23 * x2[k].homogeneous());
+            double nJc23_sq = (F23.block<2, 3>(0, 0) * x2[k].homogeneous()).squaredNorm() +
+                              (F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
+
+            double r23_sq = (C23 * C23) / nJc23_sq;
+            double loss23 = loss_fn.loss(r23_sq);
+            if (loss23 == 0.0)
+                continue;
+
+            cost += weights[k] * loss12;
+            cost += weights[k] * loss13;
+            cost += weights[k] * loss23;
+        }
+
+        return cost;
+    }
+
+    double residual(const ImageTriplet &image_triplet, size_t k) const {
+        Eigen::Matrix3d F12, F13, F23, E12, E13, E23;
+        Eigen::DiagonalMatrix<double, 3> K1_inv(1, 1, image_triplet.camera1.focal());
+        Eigen::DiagonalMatrix<double, 3> K3_inv(1, 1, image_triplet.camera3.focal());
+        essential_from_motion(image_triplet.poses.pose12, &E12);
+        essential_from_motion(image_triplet.poses.pose13, &E13);
+        essential_from_motion(image_triplet.poses.pose23(), &E23);
+        F12 = K1_inv * E12 * K1_inv;
+        F13 = K3_inv * E13 * K1_inv;
+        F23 = K3_inv * E23 * K1_inv;
+
+        double cost = 0.0;
+            // F12
+            double C12 = x2[k].homogeneous().dot(F12 * x1[k].homogeneous());
+            double nJc12_sq = (F12.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                              (F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous()).squaredNorm();
+            double r12_sq = (C12 * C12) / nJc12_sq;
+            double loss12 = loss_fn.loss(r12_sq);
+            if (loss12 == 0.0)
+                return 0.0;
+
+            // F13
+            double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
+            double nJc13_sq = (F13.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                              (F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
+
+            double r13_sq = (C13 * C13) / nJc13_sq;
+            double loss13 = loss_fn.loss(r13_sq);
+            if (loss13 == 0.0)
+                return 0.0;
+
+            // F23
+            double C23 = x3[k].homogeneous().dot(F23 * x2[k].homogeneous());
+            double nJc23_sq = (F23.block<2, 3>(0, 0) * x2[k].homogeneous()).squaredNorm() +
+                              (F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
+
+            double r23_sq = (C23 * C23) / nJc23_sq;
+            double loss23 = loss_fn.loss(r23_sq);
+            if (loss23 == 0.0)
+                return 0.0;
+
+            cost += weights[k] * loss12;
+            cost += weights[k] * loss13;
+            cost += weights[k] * loss23;
+
+        return cost;
+    }
+
+    size_t accumulate(const ImageTriplet &image_triplet, Eigen::Matrix<double, 12, 12> &JtJ,
+                      Eigen::Matrix<double, 12, 1> &Jtr) {
+        // We use tangent bases for t12 and direct vector for t23
+        // We start by setting up a basis for the updates in the translation (orthogonal to t)
+        // We find the minimum element of t and cross product with the corresponding basis vector.
+        // (this ensures that the first cross product is not close to the zero vector)
+
+        CameraPose pose12 = image_triplet.poses.pose12;
+
+        if (std::abs(pose12.t.x()) < std::abs(pose12.t.y())) {
+            // x < y
+            if (std::abs(pose12.t.x()) < std::abs(pose12.t.z())) {
+                tangent_basis.col(0) = pose12.t.cross(Eigen::Vector3d::UnitX()).normalized();
+            } else {
+                tangent_basis.col(0) = pose12.t.cross(Eigen::Vector3d::UnitZ()).normalized();
+            }
+        } else {
+            // x > y
+            if (std::abs(pose12.t.y()) < std::abs(pose12.t.z())) {
+                tangent_basis.col(0) = pose12.t.cross(Eigen::Vector3d::UnitY()).normalized();
+            } else {
+                tangent_basis.col(0) = pose12.t.cross(Eigen::Vector3d::UnitZ()).normalized();
+            }
+        }
+        tangent_basis.col(1) = tangent_basis.col(0).cross(pose12.t).normalized();
+
+        Eigen::Matrix3d E12, R12, E13, R13, E23, R23, F12, F13, F23;
+
+        R12 = pose12.R();
+        essential_from_motion(pose12, &E12);
+
+        R13 = image_triplet.poses.pose13.R();
+        essential_from_motion(image_triplet.poses.pose13, &E13);
+
+        CameraPose pose23 = image_triplet.poses.pose23();
+        R23 = pose23.R();
+        essential_from_motion(pose23, &E23);
+
+        double f1 = image_triplet.camera1.focal();
+        double f3 = image_triplet.camera3.focal();
+
+        Eigen::DiagonalMatrix<double, 3> K1_inv(1, 1, f1);
+        Eigen::DiagonalMatrix<double, 3> K3_inv(1, 1, f3);
+        F12 = K1_inv * E12 * K1_inv;
+        F13 = K3_inv * E13 * K1_inv;
+        F23 = K3_inv * E23 * K1_inv;
+
+//        Eigen::Matrix<double, 9, 1> dF12df1, dF13df1, dF13df3, dF23df1, dF23df3;
+        Eigen::Matrix<double, 9, 1> dF12df1, dF13df1, dF23df1;
+        dF12df1 << 0.0, 0.0, E12(2, 0), 0.0, 0.0, E12(2, 1), E12(0, 2), E12(1, 2), 2 * E12(2, 2) * f1;
+
+        dF13df1 << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, E13(0, 2), E13(1, 2), E13(2, 2) * f3;
+//        dF13df3 << 0.0, 0.0, E13(2, 0), 0.0, 0.0, E13(2, 1), 0.0, 0.0, E13(2, 2) * f1;
+
+        dF23df1 << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, E23(0, 2), E23(1, 2), E23(2, 2) * f3;
+//        dF23df3 << 0.0, 0.0, E23(2, 0), 0.0, 0.0, E23(2, 1), 0.0, 0.0, E23(2, 2) * f1;
+
+        Eigen::Matrix<double, 1, 9> dF12dE12, dF13dE13, dF23dE23;
+        dF12dE12 << 1.0, 1.0, f1, 1.0, 1.0, f1, f1, f1, f1 * f1;
+        dF13dE13 << 1.0, 1.0, f3, 1.0, 1.0, f3, f1, f1, f1 * f3;
+        dF23dE23 << 1.0, 1.0, f3, 1.0, 1.0, f3, f1, f1, f1 * f3;
+
+        // Matrices contain the jacobians of E12 w.r.t. the rotation and translation parameters
+        Eigen::Matrix<double, 9, 3> dE12dr12;
+        Eigen::Matrix<double, 9, 2> dE12dt12;
+
+        // Each column is vec(E12*skew(e_k)) where e_k is k:th basis vector
+        dE12dr12.block<3, 1>(0, 0).setZero();
+        dE12dr12.block<3, 1>(0, 1) = -E12.col(2);
+        dE12dr12.block<3, 1>(0, 2) = E12.col(1);
+        dE12dr12.block<3, 1>(3, 0) = E12.col(2);
+        dE12dr12.block<3, 1>(3, 1).setZero();
+        dE12dr12.block<3, 1>(3, 2) = -E12.col(0);
+        dE12dr12.block<3, 1>(6, 0) = -E12.col(1);
+        dE12dr12.block<3, 1>(6, 1) = E12.col(0);
+        dE12dr12.block<3, 1>(6, 2).setZero();
+
+        // Each column is vec(skew(tangent_basis_12[k])*R12)
+        dE12dt12.block<3, 1>(0, 0) = tangent_basis.col(0).cross(R12.col(0));
+        dE12dt12.block<3, 1>(0, 1) = tangent_basis.col(1).cross(R12.col(0));
+        dE12dt12.block<3, 1>(3, 0) = tangent_basis.col(0).cross(R12.col(1));
+        dE12dt12.block<3, 1>(3, 1) = tangent_basis.col(1).cross(R12.col(1));
+        dE12dt12.block<3, 1>(6, 0) = tangent_basis.col(0).cross(R12.col(2));
+        dE12dt12.block<3, 1>(6, 1) = tangent_basis.col(1).cross(R12.col(2));
+
+        // Matrices contain the jacobians of E12 w.r.t. the rotation and translation parameters
+        Eigen::Matrix<double, 9, 3> dE13dr13;
+        Eigen::Matrix<double, 9, 3> dE13dt13;
+
+        // Each column is vec(E13*skew(e_k)) where e_k is k:th basis vector
+        dE13dr13.block<3, 1>(0, 0).setZero();
+        dE13dr13.block<3, 1>(0, 1) = -E13.col(2);
+        dE13dr13.block<3, 1>(0, 2) = E13.col(1);
+        dE13dr13.block<3, 1>(3, 0) = E13.col(2);
+        dE13dr13.block<3, 1>(3, 1).setZero();
+        dE13dr13.block<3, 1>(3, 2) = -E13.col(0);
+        dE13dr13.block<3, 1>(6, 0) = -E13.col(1);
+        dE13dr13.block<3, 1>(6, 1) = E13.col(0);
+        dE13dr13.block<3, 1>(6, 2).setZero();
+
+        // Each column is vec(skew(e_k)*R13) where e_k is k:th basis vector
+        Eigen::Matrix3d dE13dt13_0, dE13dt13_1, dE13dt13_2;
+        dE13dt13_0.row(0).setZero();
+        dE13dt13_0.row(1) = -R13.row(2);
+        dE13dt13_0.row(2) = R13.row(1);
+
+        dE13dt13_1.row(0) = R13.row(2);
+        dE13dt13_1.row(1).setZero();
+        dE13dt13_1.row(2) = - R13.row(0);
+
+        dE13dt13_2.row(0) = - R13.row(1);
+        dE13dt13_2.row(1) = R13.row(0);
+        dE13dt13_2.row(2).setZero();
+
+        dE13dt13.col(0) = Eigen::Map<Eigen::VectorXd>(dE13dt13_0.data(), dE13dt13_0.size());
+        dE13dt13.col(1) = Eigen::Map<Eigen::VectorXd>(dE13dt13_1.data(), dE13dt13_1.size());
+        dE13dt13.col(2) = Eigen::Map<Eigen::VectorXd>(dE13dt13_2.data(), dE13dt13_2.size());
+
+        //TODO: this part calculates dE23dX and is not optimized yet
+
+        // define skew(e_k)
+        Eigen::Matrix3d b_0 = skew(Eigen::Vector3d::UnitX());
+        Eigen::Matrix3d b_1 = skew(Eigen::Vector3d::UnitY());
+        Eigen::Matrix3d b_2 = skew(Eigen::Vector3d::UnitZ());
+
+        Eigen::Matrix3d dE23dr12_0, dE23dr12_1, dE23dr12_2;
+        dE23dr12_0 = skew(R13 * b_0 * R12.transpose() * pose12.t) * R23 - skew(pose23.t) * R13 * b_0 * R12.transpose();
+        dE23dr12_1 = skew(R13 * b_1 * R12.transpose() * pose12.t) * R23 - skew(pose23.t) * R13 * b_1 * R12.transpose();
+        dE23dr12_2 = skew(R13 * b_2 * R12.transpose() * pose12.t) * R23 - skew(pose23.t) * R13 * b_2 * R12.transpose();
+
+        Eigen::Matrix3d dE23dr13_0, dE23dr13_1, dE23dr13_2;
+        dE23dr13_0 = - dE23dr12_0;
+        dE23dr13_1 = - dE23dr12_1;
+        dE23dr13_2 = - dE23dr12_2;
+
+        // dE23dt12 = skew(tangent_basis_k) * R23
+        Eigen::Matrix3d dE23dt12_0, dE23dt12_1;
+        dE23dt12_0 = - skew(R23 * tangent_basis.col(0)) * R23;
+        dE23dt12_1 = - skew(R23 * tangent_basis.col(1)) * R23;
+
+        // dE23dt13 = skew(e_k) * R23
+        Eigen::Matrix3d dE23dt13_0, dE23dt13_1, dE23dt13_2;
+        dE23dt13_0.row(0).setZero();
+        dE23dt13_0.row(1) = -R23.row(2);
+        dE23dt13_0.row(2) = R23.row(1);
+
+        dE23dt13_1.row(0) = R23.row(2);
+        dE23dt13_1.row(1).setZero();
+        dE23dt13_1.row(2) = - R23.row(0);
+
+        dE23dt13_2.row(0) = - R23.row(1);
+        dE23dt13_2.row(1) = R23.row(0);
+        dE23dt13_2.row(2).setZero();
+
+        Eigen::Matrix<double, 9, 3> dE23dr12;
+        Eigen::Matrix<double, 9, 3> dE23dr13;
+        Eigen::Matrix<double, 9, 2> dE23dt12;
+        Eigen::Matrix<double, 9, 3> dE23dt13;
+
+        dE23dr12.col(0) = Eigen::Map<Eigen::VectorXd>(dE23dr12_0.data(), dE23dr12_0.size());
+        dE23dr12.col(1) = Eigen::Map<Eigen::VectorXd>(dE23dr12_1.data(), dE23dr12_1.size());
+        dE23dr12.col(2) = Eigen::Map<Eigen::VectorXd>(dE23dr12_2.data(), dE23dr12_2.size());
+
+        dE23dr13.col(0) = Eigen::Map<Eigen::VectorXd>(dE23dr13_0.data(), dE23dr13_0.size());
+        dE23dr13.col(1) = Eigen::Map<Eigen::VectorXd>(dE23dr13_1.data(), dE23dr13_1.size());
+        dE23dr13.col(2) = Eigen::Map<Eigen::VectorXd>(dE23dr13_2.data(), dE23dr13_2.size());
+
+        dE23dt12.col(0) = Eigen::Map<Eigen::VectorXd>(dE23dt12_0.data(), dE23dt12_0.size());
+        dE23dt12.col(1) = Eigen::Map<Eigen::VectorXd>(dE23dt12_1.data(), dE23dt12_1.size());
+
+        dE23dt13.col(0) = Eigen::Map<Eigen::VectorXd>(dE23dt13_0.data(), dE23dt13_0.size());
+        dE23dt13.col(1) = Eigen::Map<Eigen::VectorXd>(dE23dt13_1.data(), dE23dt13_1.size());
+        dE23dt13.col(2) = Eigen::Map<Eigen::VectorXd>(dE23dt13_2.data(), dE23dt13_2.size());
+
+        size_t num_residuals = 0;
+        for (size_t k = 0; k < x1.size(); ++k) {
+            double C12 = x2[k].homogeneous().dot(F12 * x1[k].homogeneous());
+            double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
+            double C23 = x3[k].homogeneous().dot(F23 * x2[k].homogeneous());
+
+            // J_C12 is the Jacobian of the epipolar constraint w.r12.t. the image points
+            Eigen::Vector4d J_C12;
+            J_C12 << F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous(), F12.block<2, 3>(0, 0) * x1[k].homogeneous();
+            const double nJ_C12 = J_C12.norm();
+            const double inv_nJ_C12 = 1.0 / nJ_C12;
+            const double r12 = C12 * inv_nJ_C12;
+            const double weight12 = weights[k] * loss_fn.weight(r12 * r12);
+            if (weight12 == 0.0) {
+                continue;
+            }
+
+            Eigen::Vector4d J_C13;
+            J_C13 << F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(), F13.block<2, 3>(0, 0) * x1[k].homogeneous();
+            const double nJ_C13 = J_C13.norm();
+            const double inv_nJ_C13 = 1.0 / nJ_C13;
+            const double r13 = C13 * inv_nJ_C13;
+
+            const double weight13 = weights[k] * loss_fn.weight(r13 * r13);
+            if (weight13 == 0.0) {
+                continue;
+            }
+
+            Eigen::Vector4d J_C23;
+            J_C23 << F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(), F23.block<2, 3>(0, 0) * x2[k].homogeneous();
+            const double nJ_C23 = J_C23.norm();
+            const double inv_nJ_C23 = 1.0 / nJ_C23;
+            const double r23 = C23 * inv_nJ_C23;
+
+            const double weight23 = weights[k] * loss_fn.weight(r23 * r23);
+            if (weight23 == 0.0) {
+                continue;
+            }
+
+            num_residuals += 3;
+
+            // Compute Jacobian of Sampson error w.r12.t the fundamental/essential matrix (3x3)
+            Eigen::Matrix<double, 1, 9> dSdF12;
+            dSdF12 << x1[k](0) * x2[k](0), x1[k](0) * x2[k](1), x1[k](0), x1[k](1) * x2[k](0), x1[k](1) * x2[k](1),
+                x1[k](1), x2[k](0), x2[k](1), 1.0;
+            const double s12 = C12 * inv_nJ_C12 * inv_nJ_C12;
+            dSdF12(0) -= s12 * (J_C12(2) * x1[k](0) + J_C12(0) * x2[k](0));
+            dSdF12(1) -= s12 * (J_C12(3) * x1[k](0) + J_C12(0) * x2[k](1));
+            dSdF12(2) -= s12 * (J_C12(0));
+            dSdF12(3) -= s12 * (J_C12(2) * x1[k](1) + J_C12(1) * x2[k](0));
+            dSdF12(4) -= s12 * (J_C12(3) * x1[k](1) + J_C12(1) * x2[k](1));
+            dSdF12(5) -= s12 * (J_C12(1));
+            dSdF12(6) -= s12 * (J_C12(2));
+            dSdF12(7) -= s12 * (J_C12(3));
+            dSdF12 *= inv_nJ_C12;
+
+            Eigen::Matrix<double, 1, 9> dSdF13;
+            dSdF13 << x1[k](0) * x3[k](0), x1[k](0) * x3[k](1), x1[k](0), x1[k](1) * x3[k](0), x1[k](1) * x3[k](1),
+                x1[k](1), x3[k](0), x3[k](1), 1.0;
+            const double s13 = C13 * inv_nJ_C13 * inv_nJ_C13;
+            dSdF13(0) -= s13 * (J_C13(2) * x1[k](0) + J_C13(0) * x3[k](0));
+            dSdF13(1) -= s13 * (J_C13(3) * x1[k](0) + J_C13(0) * x3[k](1));
+            dSdF13(2) -= s13 * (J_C13(0));
+            dSdF13(3) -= s13 * (J_C13(2) * x1[k](1) + J_C13(1) * x3[k](0));
+            dSdF13(4) -= s13 * (J_C13(3) * x1[k](1) + J_C13(1) * x3[k](1));
+            dSdF13(5) -= s13 * (J_C13(1));
+            dSdF13(6) -= s13 * (J_C13(2));
+            dSdF13(7) -= s13 * (J_C13(3));
+            dSdF13 *= inv_nJ_C13;
+
+            Eigen::Matrix<double, 1, 9> dSdF23;
+            dSdF23 << x2[k](0) * x3[k](0), x2[k](0) * x3[k](1), x2[k](0), x2[k](1) * x3[k](0), x2[k](1) * x3[k](1),
+                x2[k](1), x3[k](0), x3[k](1), 1.0;
+            const double s23 = C23 * inv_nJ_C23 * inv_nJ_C23;
+            dSdF23(0) -= s23 * (J_C23(2) * x2[k](0) + J_C23(0) * x3[k](0));
+            dSdF23(1) -= s23 * (J_C23(3) * x2[k](0) + J_C23(0) * x3[k](1));
+            dSdF23(2) -= s23 * (J_C23(0));
+            dSdF23(3) -= s23 * (J_C23(2) * x2[k](1) + J_C23(1) * x3[k](0));
+            dSdF23(4) -= s23 * (J_C23(3) * x2[k](1) + J_C23(1) * x3[k](1));
+            dSdF23(5) -= s23 * (J_C23(1));
+            dSdF23(6) -= s23 * (J_C23(2));
+            dSdF23(7) -= s23 * (J_C23(3));
+            dSdF23 *= inv_nJ_C23;
+
+            // and then w.r.t. the pose parameters (rotation + tangent basis for translation)
+            Eigen::Matrix<double, 1, 12> J12;
+            J12.block<1, 3>(0, 0) = dSdF12.cwiseProduct(dF12dE12) * dE12dr12;
+            J12.block<1, 2>(0, 3) = dSdF12.cwiseProduct(dF12dE12) * dE12dt12;
+            J12.block<1, 6>(0, 5).setZero();
+            J12(0, 11) = dSdF12 * dF12df1;
+
+            Eigen::Matrix<double, 1, 12> J13;
+            J13.block<1, 5>(0, 0).setZero();
+            J13.block<1, 3>(0, 5) = dSdF13.cwiseProduct(dF13dE13) * dE13dr13;
+            J13.block<1, 3>(0, 8) = dSdF13.cwiseProduct(dF13dE13) * dE13dt13;
+            J13(0, 11) = dSdF13 * dF13df1;
+
+            Eigen::Matrix<double, 1, 12> J23;
+            J23.block<1, 3>(0, 0) = dSdF23.cwiseProduct(dF23dE23) * dE23dr12;
+            J23.block<1, 2>(0, 3) = dSdF23.cwiseProduct(dF23dE23) * dE23dt12;
+            J23.block<1, 3>(0, 5) = dSdF23.cwiseProduct(dF23dE23) * dE23dr13;
+            J23.block<1, 3>(0, 8) = dSdF23.cwiseProduct(dF23dE23) * dE23dt13;
+            J23(0, 11) = dSdF23 * dF23df1;
+
+//            Eigen::Matrix<double, 1, 12> num_J;
+//            Eigen::Matrix<double, 12, 1> dp;
+//            double eps = 1.0e-8;
+//            for (int j = 0; j < 12; ++j){
+//                dp.setZero();
+//                dp(j, 0) = eps;
+//                ImageTriplet fwd_image_triplet = step(dp, image_triplet);
+//                ImageTriplet bcw_image_triplet = step(-dp, image_triplet);
+//                dp.setZero();
+//                num_J(0, j) = (residual(fwd_image_triplet, k) - residual(bcw_image_triplet, k)) / (2 * eps);
+//            }
+//
+//            std::cout << "Sym J: " << 2 * (weight12 * C12 * inv_nJ_C12 * J12 + weight13 * C13 * inv_nJ_C13 * J13 + weight23 * C23 * inv_nJ_C23 * J23) << std::endl;
+//            std::cout << "Num J: " << num_J << std::endl;
+
+            // Accumulate into Jtr
+            Jtr += weight12 * C12 * inv_nJ_C12 * J12.transpose();
+            Jtr += weight13 * C13 * inv_nJ_C13 * J13.transpose();
+            Jtr += weight23 * C23 * inv_nJ_C23 * J23.transpose();
+
+            for (int row = 0; row < 12; row++)
+                for (int col = 0; col < 12; col++)
+                    if (row >= col) {
+                        JtJ(row, col) += weight12 * (J12(row) * J12(col));
+                        JtJ(row, col) += weight13 * (J13(row) * J13(col));
+                        JtJ(row, col) += weight23 * (J23(row) * J23(col));
+                    }
+        }
+        return num_residuals;
+    }
+
+    ImageTriplet step(Eigen::Matrix<double, 12, 1> dp, const ImageTriplet &image_triplet) const {
+        CameraPose pose12_new, pose13_new;
+
+        pose12_new.q = quat_step_post(image_triplet.poses.pose12.q, dp.block<3, 1>(0, 0));
+        pose12_new.t = image_triplet.poses.pose12.t + tangent_basis * dp.block<2, 1>(3, 0);
+
+        pose13_new.q = quat_step_post(image_triplet.poses.pose13.q, dp.block<3, 1>(5, 0));
+        pose13_new.t = image_triplet.poses.pose13.t + dp.block<3, 1>(8, 0);
+
+        Camera camera1_new = Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera1.focal()+ dp(11,0), 0.0, 0.0}, -1, -1);
+
+        ImageTriplet image_triplet_new(ThreeViewCameraPose(pose12_new, pose13_new), camera1_new, camera1_new, image_triplet.camera3);
+        return image_triplet_new;
+    }
+    typedef ImageTriplet param_t;
+    static constexpr size_t num_params = 12;
+
+  private:
+    const std::vector<Point2D> &x1;
+    const std::vector<Point2D> &x2;
+    const std::vector<Point2D> &x3;
+    const LossFunction &loss_fn;
+    const ResidualWeightVector &weights;
+    Eigen::Matrix<double, 3, 2> tangent_basis;
+};
+
+template <typename LossFunction, typename ResidualWeightVector = UniformWeightVector>
+class ThreeViewCase3RelativePoseJacobianAccumulator {
+  public:
+    ThreeViewCase3RelativePoseJacobianAccumulator(const std::vector<Point2D> &points2D_1,
+                                                        const std::vector<Point2D> &points2D_2,
+                                                        const std::vector<Point2D> &points2D_3,
+                                                        const LossFunction &l,
+                                                        const ResidualWeightVector &w = ResidualWeightVector())
+        : x1(points2D_1), x2(points2D_2), x3(points2D_3), loss_fn(l), weights(w) {}
+
+    double residual(const ImageTriplet &image_triplet) const {
+        Eigen::Matrix3d F12, F13, F23, E12, E13, E23;
+        Eigen::DiagonalMatrix<double, 3> K1_inv(1, 1, image_triplet.camera1.focal());
+        Eigen::DiagonalMatrix<double, 3> K3_inv(1, 1, image_triplet.camera3.focal());
+        essential_from_motion(image_triplet.poses.pose12, &E12);
+        essential_from_motion(image_triplet.poses.pose13, &E13);
+        essential_from_motion(image_triplet.poses.pose23(), &E23);
+        F12 = K1_inv * E12 * K1_inv;
+        F13 = K3_inv * E13 * K1_inv;
+        F23 = K3_inv * E23 * K1_inv;
+
+        double cost = 0.0;
+        for (size_t k = 0; k < x1.size(); ++k) {
+            // F12
+            double C12 = x2[k].homogeneous().dot(F12 * x1[k].homogeneous());
+            double nJc12_sq = (F12.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                              (F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous()).squaredNorm();
+            double r12_sq = (C12 * C12) / nJc12_sq;
+            double loss12 = loss_fn.loss(r12_sq);
+            if (loss12 == 0.0)
+                continue;
+
+            // F13
+            double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
+            double nJc13_sq = (F13.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                              (F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
+
+            double r13_sq = (C13 * C13) / nJc13_sq;
+            double loss13 = loss_fn.loss(r13_sq);
+            if (loss13 == 0.0)
+                continue;
+
+            // F23
+            double C23 = x3[k].homogeneous().dot(F23 * x2[k].homogeneous());
+            double nJc23_sq = (F23.block<2, 3>(0, 0) * x2[k].homogeneous()).squaredNorm() +
+                              (F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
+
+            double r23_sq = (C23 * C23) / nJc23_sq;
+            double loss23 = loss_fn.loss(r23_sq);
+            if (loss23 == 0.0)
+                continue;
+
+            cost += weights[k] * loss12;
+            cost += weights[k] * loss13;
+            cost += weights[k] * loss23;
+        }
+
+        return cost;
+    }
+
+    double residual(const ImageTriplet &image_triplet, size_t k) const {
+        Eigen::Matrix3d F12, F13, F23, E12, E13, E23;
+        Eigen::DiagonalMatrix<double, 3> K1_inv(1, 1, image_triplet.camera1.focal());
+        Eigen::DiagonalMatrix<double, 3> K3_inv(1, 1, image_triplet.camera3.focal());
+        essential_from_motion(image_triplet.poses.pose12, &E12);
+        essential_from_motion(image_triplet.poses.pose13, &E13);
+        essential_from_motion(image_triplet.poses.pose23(), &E23);
+        F12 = K1_inv * E12 * K1_inv;
+        F13 = K3_inv * E13 * K1_inv;
+        F23 = K3_inv * E23 * K1_inv;
+
+        double cost = 0.0;
+            // F12
+            double C12 = x2[k].homogeneous().dot(F12 * x1[k].homogeneous());
+            double nJc12_sq = (F12.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                              (F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous()).squaredNorm();
+            double r12_sq = (C12 * C12) / nJc12_sq;
+            double loss12 = loss_fn.loss(r12_sq);
+            if (loss12 == 0.0)
+                return 0.0;
+
+            // F13
+            double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
+            double nJc13_sq = (F13.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                              (F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
+
+            double r13_sq = (C13 * C13) / nJc13_sq;
+            double loss13 = loss_fn.loss(r13_sq);
+            if (loss13 == 0.0)
+                return 0.0;
+
+            // F23
+            double C23 = x3[k].homogeneous().dot(F23 * x2[k].homogeneous());
+            double nJc23_sq = (F23.block<2, 3>(0, 0) * x2[k].homogeneous()).squaredNorm() +
+                              (F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
+
+            double r23_sq = (C23 * C23) / nJc23_sq;
+            double loss23 = loss_fn.loss(r23_sq);
+            if (loss23 == 0.0)
+                return 0.0;
+
+            cost += weights[k] * loss12;
+            cost += weights[k] * loss13;
+            cost += weights[k] * loss23;
+
+        return cost;
+    }
+
+    size_t accumulate(const ImageTriplet &image_triplet, Eigen::Matrix<double, 13, 13> &JtJ,
+                      Eigen::Matrix<double, 13, 1> &Jtr) {
+        // We use tangent bases for t12 and direct vector for t23
+        // We start by setting up a basis for the updates in the translation (orthogonal to t)
+        // We find the minimum element of t and cross product with the corresponding basis vector.
+        // (this ensures that the first cross product is not close to the zero vector)
+
+        CameraPose pose12 = image_triplet.poses.pose12;
+
+        if (std::abs(pose12.t.x()) < std::abs(pose12.t.y())) {
+            // x < y
+            if (std::abs(pose12.t.x()) < std::abs(pose12.t.z())) {
+                tangent_basis.col(0) = pose12.t.cross(Eigen::Vector3d::UnitX()).normalized();
+            } else {
+                tangent_basis.col(0) = pose12.t.cross(Eigen::Vector3d::UnitZ()).normalized();
+            }
+        } else {
+            // x > y
+            if (std::abs(pose12.t.y()) < std::abs(pose12.t.z())) {
+                tangent_basis.col(0) = pose12.t.cross(Eigen::Vector3d::UnitY()).normalized();
+            } else {
+                tangent_basis.col(0) = pose12.t.cross(Eigen::Vector3d::UnitZ()).normalized();
+            }
+        }
+        tangent_basis.col(1) = tangent_basis.col(0).cross(pose12.t).normalized();
+
+        Eigen::Matrix3d E12, R12, E13, R13, E23, R23, F12, F13, F23;
+
+        R12 = pose12.R();
+        essential_from_motion(pose12, &E12);
+
+        R13 = image_triplet.poses.pose13.R();
+        essential_from_motion(image_triplet.poses.pose13, &E13);
+
+        CameraPose pose23 = image_triplet.poses.pose23();
+        R23 = pose23.R();
+        essential_from_motion(pose23, &E23);
+
+        double f1 = image_triplet.camera1.focal();
+        double f3 = image_triplet.camera3.focal();
+
+        Eigen::DiagonalMatrix<double, 3> K1_inv(1, 1, f1);
+        Eigen::DiagonalMatrix<double, 3> K3_inv(1, 1, f3);
+        F12 = K1_inv * E12 * K1_inv;
+        F13 = K3_inv * E13 * K1_inv;
+        F23 = K3_inv * E23 * K1_inv;
+
+        Eigen::Matrix<double, 9, 1> dF12df1, dF13df1, dF13df3, dF23df1, dF23df3;
+        dF12df1 << 0.0, 0.0, E12(2, 0), 0.0, 0.0, E12(2, 1), E12(0, 2), E12(1, 2), 2 * E12(2, 2) * f1;
+
+        dF13df1 << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, E13(0, 2), E13(1, 2), E13(2, 2) * f3;
+        dF13df3 << 0.0, 0.0, E13(2, 0), 0.0, 0.0, E13(2, 1), 0.0, 0.0, E13(2, 2) * f1;
+
+        dF23df1 << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, E23(0, 2), E23(1, 2), E23(2, 2) * f3;
+        dF23df3 << 0.0, 0.0, E23(2, 0), 0.0, 0.0, E23(2, 1), 0.0, 0.0, E23(2, 2) * f1;
+
+        Eigen::Matrix<double, 1, 9> dF12dE12, dF13dE13, dF23dE23;
+        dF12dE12 << 1.0, 1.0, f1, 1.0, 1.0, f1, f1, f1, f1 * f1;
+        dF13dE13 << 1.0, 1.0, f3, 1.0, 1.0, f3, f1, f1, f1 * f3;
+        dF23dE23 << 1.0, 1.0, f3, 1.0, 1.0, f3, f1, f1, f1 * f3;
+
+        // Matrices contain the jacobians of E12 w.r.t. the rotation and translation parameters
+        Eigen::Matrix<double, 9, 3> dE12dr12;
+        Eigen::Matrix<double, 9, 2> dE12dt12;
+
+        // Each column is vec(E12*skew(e_k)) where e_k is k:th basis vector
+        dE12dr12.block<3, 1>(0, 0).setZero();
+        dE12dr12.block<3, 1>(0, 1) = -E12.col(2);
+        dE12dr12.block<3, 1>(0, 2) = E12.col(1);
+        dE12dr12.block<3, 1>(3, 0) = E12.col(2);
+        dE12dr12.block<3, 1>(3, 1).setZero();
+        dE12dr12.block<3, 1>(3, 2) = -E12.col(0);
+        dE12dr12.block<3, 1>(6, 0) = -E12.col(1);
+        dE12dr12.block<3, 1>(6, 1) = E12.col(0);
+        dE12dr12.block<3, 1>(6, 2).setZero();
+
+        // Each column is vec(skew(tangent_basis_12[k])*R12)
+        dE12dt12.block<3, 1>(0, 0) = tangent_basis.col(0).cross(R12.col(0));
+        dE12dt12.block<3, 1>(0, 1) = tangent_basis.col(1).cross(R12.col(0));
+        dE12dt12.block<3, 1>(3, 0) = tangent_basis.col(0).cross(R12.col(1));
+        dE12dt12.block<3, 1>(3, 1) = tangent_basis.col(1).cross(R12.col(1));
+        dE12dt12.block<3, 1>(6, 0) = tangent_basis.col(0).cross(R12.col(2));
+        dE12dt12.block<3, 1>(6, 1) = tangent_basis.col(1).cross(R12.col(2));
+
+        // Matrices contain the jacobians of E12 w.r.t. the rotation and translation parameters
+        Eigen::Matrix<double, 9, 3> dE13dr13;
+        Eigen::Matrix<double, 9, 3> dE13dt13;
+
+        // Each column is vec(E13*skew(e_k)) where e_k is k:th basis vector
+        dE13dr13.block<3, 1>(0, 0).setZero();
+        dE13dr13.block<3, 1>(0, 1) = -E13.col(2);
+        dE13dr13.block<3, 1>(0, 2) = E13.col(1);
+        dE13dr13.block<3, 1>(3, 0) = E13.col(2);
+        dE13dr13.block<3, 1>(3, 1).setZero();
+        dE13dr13.block<3, 1>(3, 2) = -E13.col(0);
+        dE13dr13.block<3, 1>(6, 0) = -E13.col(1);
+        dE13dr13.block<3, 1>(6, 1) = E13.col(0);
+        dE13dr13.block<3, 1>(6, 2).setZero();
+
+        // Each column is vec(skew(e_k)*R13) where e_k is k:th basis vector
+        Eigen::Matrix3d dE13dt13_0, dE13dt13_1, dE13dt13_2;
+        dE13dt13_0.row(0).setZero();
+        dE13dt13_0.row(1) = -R13.row(2);
+        dE13dt13_0.row(2) = R13.row(1);
+
+        dE13dt13_1.row(0) = R13.row(2);
+        dE13dt13_1.row(1).setZero();
+        dE13dt13_1.row(2) = - R13.row(0);
+
+        dE13dt13_2.row(0) = - R13.row(1);
+        dE13dt13_2.row(1) = R13.row(0);
+        dE13dt13_2.row(2).setZero();
+
+        dE13dt13.col(0) = Eigen::Map<Eigen::VectorXd>(dE13dt13_0.data(), dE13dt13_0.size());
+        dE13dt13.col(1) = Eigen::Map<Eigen::VectorXd>(dE13dt13_1.data(), dE13dt13_1.size());
+        dE13dt13.col(2) = Eigen::Map<Eigen::VectorXd>(dE13dt13_2.data(), dE13dt13_2.size());
+
+        //TODO: this part calculates dE23dX and is not optimized yet
+
+        // define skew(e_k)
+        Eigen::Matrix3d b_0 = skew(Eigen::Vector3d::UnitX());
+        Eigen::Matrix3d b_1 = skew(Eigen::Vector3d::UnitY());
+        Eigen::Matrix3d b_2 = skew(Eigen::Vector3d::UnitZ());
+
+        Eigen::Matrix3d dE23dr12_0, dE23dr12_1, dE23dr12_2;
+        dE23dr12_0 = skew(R13 * b_0 * R12.transpose() * pose12.t) * R23 - skew(pose23.t) * R13 * b_0 * R12.transpose();
+        dE23dr12_1 = skew(R13 * b_1 * R12.transpose() * pose12.t) * R23 - skew(pose23.t) * R13 * b_1 * R12.transpose();
+        dE23dr12_2 = skew(R13 * b_2 * R12.transpose() * pose12.t) * R23 - skew(pose23.t) * R13 * b_2 * R12.transpose();
+
+        Eigen::Matrix3d dE23dr13_0, dE23dr13_1, dE23dr13_2;
+        dE23dr13_0 = - dE23dr12_0;
+        dE23dr13_1 = - dE23dr12_1;
+        dE23dr13_2 = - dE23dr12_2;
+
+        // dE23dt12 = skew(tangent_basis_k) * R23
+        Eigen::Matrix3d dE23dt12_0, dE23dt12_1;
+        dE23dt12_0 = - skew(R23 * tangent_basis.col(0)) * R23;
+        dE23dt12_1 = - skew(R23 * tangent_basis.col(1)) * R23;
+
+        // dE23dt13 = skew(e_k) * R23
+        Eigen::Matrix3d dE23dt13_0, dE23dt13_1, dE23dt13_2;
+        dE23dt13_0.row(0).setZero();
+        dE23dt13_0.row(1) = -R23.row(2);
+        dE23dt13_0.row(2) = R23.row(1);
+
+        dE23dt13_1.row(0) = R23.row(2);
+        dE23dt13_1.row(1).setZero();
+        dE23dt13_1.row(2) = - R23.row(0);
+
+        dE23dt13_2.row(0) = - R23.row(1);
+        dE23dt13_2.row(1) = R23.row(0);
+        dE23dt13_2.row(2).setZero();
+
+        Eigen::Matrix<double, 9, 3> dE23dr12;
+        Eigen::Matrix<double, 9, 3> dE23dr13;
+        Eigen::Matrix<double, 9, 2> dE23dt12;
+        Eigen::Matrix<double, 9, 3> dE23dt13;
+
+        dE23dr12.col(0) = Eigen::Map<Eigen::VectorXd>(dE23dr12_0.data(), dE23dr12_0.size());
+        dE23dr12.col(1) = Eigen::Map<Eigen::VectorXd>(dE23dr12_1.data(), dE23dr12_1.size());
+        dE23dr12.col(2) = Eigen::Map<Eigen::VectorXd>(dE23dr12_2.data(), dE23dr12_2.size());
+
+        dE23dr13.col(0) = Eigen::Map<Eigen::VectorXd>(dE23dr13_0.data(), dE23dr13_0.size());
+        dE23dr13.col(1) = Eigen::Map<Eigen::VectorXd>(dE23dr13_1.data(), dE23dr13_1.size());
+        dE23dr13.col(2) = Eigen::Map<Eigen::VectorXd>(dE23dr13_2.data(), dE23dr13_2.size());
+
+        dE23dt12.col(0) = Eigen::Map<Eigen::VectorXd>(dE23dt12_0.data(), dE23dt12_0.size());
+        dE23dt12.col(1) = Eigen::Map<Eigen::VectorXd>(dE23dt12_1.data(), dE23dt12_1.size());
+
+        dE23dt13.col(0) = Eigen::Map<Eigen::VectorXd>(dE23dt13_0.data(), dE23dt13_0.size());
+        dE23dt13.col(1) = Eigen::Map<Eigen::VectorXd>(dE23dt13_1.data(), dE23dt13_1.size());
+        dE23dt13.col(2) = Eigen::Map<Eigen::VectorXd>(dE23dt13_2.data(), dE23dt13_2.size());
+
+        size_t num_residuals = 0;
+        for (size_t k = 0; k < x1.size(); ++k) {
+            double C12 = x2[k].homogeneous().dot(F12 * x1[k].homogeneous());
+            double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
+            double C23 = x3[k].homogeneous().dot(F23 * x2[k].homogeneous());
+
+            // J_C12 is the Jacobian of the epipolar constraint w.r12.t. the image points
+            Eigen::Vector4d J_C12;
+            J_C12 << F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous(), F12.block<2, 3>(0, 0) * x1[k].homogeneous();
+            const double nJ_C12 = J_C12.norm();
+            const double inv_nJ_C12 = 1.0 / nJ_C12;
+            const double r12 = C12 * inv_nJ_C12;
+            const double weight12 = weights[k] * loss_fn.weight(r12 * r12);
+            if (weight12 == 0.0) {
+                continue;
+            }
+
+            Eigen::Vector4d J_C13;
+            J_C13 << F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(), F13.block<2, 3>(0, 0) * x1[k].homogeneous();
+            const double nJ_C13 = J_C13.norm();
+            const double inv_nJ_C13 = 1.0 / nJ_C13;
+            const double r13 = C13 * inv_nJ_C13;
+
+            const double weight13 = weights[k] * loss_fn.weight(r13 * r13);
+            if (weight13 == 0.0) {
+                continue;
+            }
+
+            Eigen::Vector4d J_C23;
+            J_C23 << F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(), F23.block<2, 3>(0, 0) * x2[k].homogeneous();
+            const double nJ_C23 = J_C23.norm();
+            const double inv_nJ_C23 = 1.0 / nJ_C23;
+            const double r23 = C23 * inv_nJ_C23;
+
+            const double weight23 = weights[k] * loss_fn.weight(r23 * r23);
+            if (weight23 == 0.0) {
+                continue;
+            }
+
+            num_residuals += 3;
+
+            // Compute Jacobian of Sampson error w.r12.t the fundamental/essential matrix (3x3)
+            Eigen::Matrix<double, 1, 9> dSdF12;
+            dSdF12 << x1[k](0) * x2[k](0), x1[k](0) * x2[k](1), x1[k](0), x1[k](1) * x2[k](0), x1[k](1) * x2[k](1),
+                x1[k](1), x2[k](0), x2[k](1), 1.0;
+            const double s12 = C12 * inv_nJ_C12 * inv_nJ_C12;
+            dSdF12(0) -= s12 * (J_C12(2) * x1[k](0) + J_C12(0) * x2[k](0));
+            dSdF12(1) -= s12 * (J_C12(3) * x1[k](0) + J_C12(0) * x2[k](1));
+            dSdF12(2) -= s12 * (J_C12(0));
+            dSdF12(3) -= s12 * (J_C12(2) * x1[k](1) + J_C12(1) * x2[k](0));
+            dSdF12(4) -= s12 * (J_C12(3) * x1[k](1) + J_C12(1) * x2[k](1));
+            dSdF12(5) -= s12 * (J_C12(1));
+            dSdF12(6) -= s12 * (J_C12(2));
+            dSdF12(7) -= s12 * (J_C12(3));
+            dSdF12 *= inv_nJ_C12;
+
+            Eigen::Matrix<double, 1, 9> dSdF13;
+            dSdF13 << x1[k](0) * x3[k](0), x1[k](0) * x3[k](1), x1[k](0), x1[k](1) * x3[k](0), x1[k](1) * x3[k](1),
+                x1[k](1), x3[k](0), x3[k](1), 1.0;
+            const double s13 = C13 * inv_nJ_C13 * inv_nJ_C13;
+            dSdF13(0) -= s13 * (J_C13(2) * x1[k](0) + J_C13(0) * x3[k](0));
+            dSdF13(1) -= s13 * (J_C13(3) * x1[k](0) + J_C13(0) * x3[k](1));
+            dSdF13(2) -= s13 * (J_C13(0));
+            dSdF13(3) -= s13 * (J_C13(2) * x1[k](1) + J_C13(1) * x3[k](0));
+            dSdF13(4) -= s13 * (J_C13(3) * x1[k](1) + J_C13(1) * x3[k](1));
+            dSdF13(5) -= s13 * (J_C13(1));
+            dSdF13(6) -= s13 * (J_C13(2));
+            dSdF13(7) -= s13 * (J_C13(3));
+            dSdF13 *= inv_nJ_C13;
+
+            Eigen::Matrix<double, 1, 9> dSdF23;
+            dSdF23 << x2[k](0) * x3[k](0), x2[k](0) * x3[k](1), x2[k](0), x2[k](1) * x3[k](0), x2[k](1) * x3[k](1),
+                x2[k](1), x3[k](0), x3[k](1), 1.0;
+            const double s23 = C23 * inv_nJ_C23 * inv_nJ_C23;
+            dSdF23(0) -= s23 * (J_C23(2) * x2[k](0) + J_C23(0) * x3[k](0));
+            dSdF23(1) -= s23 * (J_C23(3) * x2[k](0) + J_C23(0) * x3[k](1));
+            dSdF23(2) -= s23 * (J_C23(0));
+            dSdF23(3) -= s23 * (J_C23(2) * x2[k](1) + J_C23(1) * x3[k](0));
+            dSdF23(4) -= s23 * (J_C23(3) * x2[k](1) + J_C23(1) * x3[k](1));
+            dSdF23(5) -= s23 * (J_C23(1));
+            dSdF23(6) -= s23 * (J_C23(2));
+            dSdF23(7) -= s23 * (J_C23(3));
+            dSdF23 *= inv_nJ_C23;
+
+            // and then w.r.t. the pose parameters (rotation + tangent basis for translation)
+            Eigen::Matrix<double, 1, 13> J12;
+            J12.block<1, 3>(0, 0) = dSdF12.cwiseProduct(dF12dE12) * dE12dr12;
+            J12.block<1, 2>(0, 3) = dSdF12.cwiseProduct(dF12dE12) * dE12dt12;
+            J12.block<1, 6>(0, 5).setZero();
+            J12(0, 11) = dSdF12 * dF12df1;
+            J12(0, 12) = 0;
+
+            Eigen::Matrix<double, 1, 13> J13;
+            J13.block<1, 5>(0, 0).setZero();
+            J13.block<1, 3>(0, 5) = dSdF13.cwiseProduct(dF13dE13) * dE13dr13;
+            J13.block<1, 3>(0, 8) = dSdF13.cwiseProduct(dF13dE13) * dE13dt13;
+            J13(0, 11) = dSdF13 * dF13df1;
+            J13(0, 12) = dSdF13 * dF13df3;
+
+            Eigen::Matrix<double, 1, 13> J23;
+            J23.block<1, 3>(0, 0) = dSdF23.cwiseProduct(dF23dE23) * dE23dr12;
+            J23.block<1, 2>(0, 3) = dSdF23.cwiseProduct(dF23dE23) * dE23dt12;
+            J23.block<1, 3>(0, 5) = dSdF23.cwiseProduct(dF23dE23) * dE23dr13;
+            J23.block<1, 3>(0, 8) = dSdF23.cwiseProduct(dF23dE23) * dE23dt13;
+            J23(0, 11) = dSdF23 * dF23df1;
+            J23(0, 12) = dSdF23 * dF23df3;
+
+//            Eigen::Matrix<double, 1, 13> num_J;
+//            Eigen::Matrix<double, 13, 1> dp;
+//            double eps = 1.0e-8;
+//            for (int j = 0; j < 13; ++j){
+//                dp.setZero();
+//                dp(j, 0) = eps;
+//                ImageTriplet fwd_image_triplet = step(dp, image_triplet);
+//                ImageTriplet bcw_image_triplet = step(-dp, image_triplet);
+//                dp.setZero();
+//                num_J(0, j) = (residual(fwd_image_triplet, k) - residual(bcw_image_triplet, k)) / (2 * eps);
+//            }
+//
+//            std::cout << "Sym J: " << 2 * (weight12 * C12 * inv_nJ_C12 * J12 + weight13 * C13 * inv_nJ_C13 * J13 + weight23 * C23 * inv_nJ_C23 * J23) << std::endl;
+//            std::cout << "Num J: " << num_J << std::endl;
+
+            // Accumulate into Jtr
+            Jtr += weight12 * C12 * inv_nJ_C12 * J12.transpose();
+            Jtr += weight13 * C13 * inv_nJ_C13 * J13.transpose();
+            Jtr += weight23 * C23 * inv_nJ_C23 * J23.transpose();
+
+            for (int row = 0; row < 13; row++)
+                for (int col = 0; col < 13; col++)
+                    if (row >= col) {
+                        JtJ(row, col) += weight12 * (J12(row) * J12(col));
+                        JtJ(row, col) += weight13 * (J13(row) * J13(col));
+                        JtJ(row, col) += weight23 * (J23(row) * J23(col));
+                    }
+        }
+        return num_residuals;
+    }
+
+    ImageTriplet step(Eigen::Matrix<double, 13, 1> dp, const ImageTriplet &image_triplet) const {
+        CameraPose pose12_new, pose13_new;
+
+        pose12_new.q = quat_step_post(image_triplet.poses.pose12.q, dp.block<3, 1>(0, 0));
+        pose12_new.t = image_triplet.poses.pose12.t + tangent_basis * dp.block<2, 1>(3, 0);
+
+        pose13_new.q = quat_step_post(image_triplet.poses.pose13.q, dp.block<3, 1>(5, 0));
+        pose13_new.t = image_triplet.poses.pose13.t + dp.block<3, 1>(8, 0);
+
+        Camera camera1_new = Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera1.focal()+ dp(11,0), 0.0, 0.0}, -1, -1);
+        Camera camera3_new = Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera3.focal()+ dp(12,0), 0.0, 0.0}, -1, -1);
+
+        ImageTriplet image_triplet_new(ThreeViewCameraPose(pose12_new, pose13_new), camera1_new, camera1_new, camera3_new);
+        return image_triplet_new;
+    }
+    typedef ImageTriplet param_t;
+    static constexpr size_t num_params = 13;
 
   private:
     const std::vector<Point2D> &x1;
@@ -1360,7 +2250,7 @@ class ThreeViewSharedFocalUnscaledRelativePoseJacobianAccumulator {
 
     double residual(const ImageTriplet &image_triplet) const {
         Eigen::Matrix3d F12, F13;
-        Eigen::DiagonalMatrix<double, 3> K_inv(1, 1, image_triplet.camera.focal());
+        Eigen::DiagonalMatrix<double, 3> K_inv(1, 1, image_triplet.camera1.focal());
         essential_from_motion(image_triplet.poses.pose12, &F12);
         essential_from_motion(image_triplet.poses.pose13, &F13);
         F12 = K_inv * F12 * K_inv;
@@ -1396,7 +2286,7 @@ class ThreeViewSharedFocalUnscaledRelativePoseJacobianAccumulator {
 
     double residual(const ImageTriplet &image_triplet, size_t k) const {
         Eigen::Matrix3d F12, F13, F23;
-        Eigen::DiagonalMatrix<double, 3> K_inv(1, 1, image_triplet.camera.focal());
+        Eigen::DiagonalMatrix<double, 3> K_inv(1, 1, image_triplet.camera1.focal());
         essential_from_motion(image_triplet.poses.pose12, &F12);
         essential_from_motion(image_triplet.poses.pose13, &F13);
         F12 = K_inv * F12 * K_inv;
@@ -1482,7 +2372,7 @@ class ThreeViewSharedFocalUnscaledRelativePoseJacobianAccumulator {
         R13 = image_triplet.poses.pose13.R();
         essential_from_motion(image_triplet.poses.pose13, &E13);
 
-        double focal = image_triplet.camera.focal();
+        double focal = image_triplet.camera1.focal();
 
         Eigen::DiagonalMatrix<double, 3> K_inv(1.0, 1.0, focal);
         F12 = K_inv * E12 * K_inv;
@@ -1652,7 +2542,7 @@ class ThreeViewSharedFocalUnscaledRelativePoseJacobianAccumulator {
         pose13_new.q = quat_step_post(image_triplet.poses.pose13.q, dp.block<3, 1>(5, 0));
         pose13_new.t = image_triplet.poses.pose13.t + tangent_basis_13 * dp.block<2, 1>(8, 0);
 
-        Camera camera_new = Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera.focal()+ dp(10,0), 0.0, 0.0}, -1, -1);
+        Camera camera_new = Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera1.focal()+ dp(10,0), 0.0, 0.0}, -1, -1);
 
         ImageTriplet image_triplet_new(ThreeViewCameraPose(pose12_new, pose13_new), camera_new);
         return image_triplet_new;
@@ -1847,6 +2737,183 @@ class SharedFocalRelativePoseJacobianAccumulator {
         return calib_pose_new;
     }
     typedef ImagePair param_t;
+    static constexpr size_t num_params = 6;
+
+  private:
+    const std::vector<Point2D> &x1;
+    const std::vector<Point2D> &x2;
+    const LossFunction &loss_fn;
+    const ResidualWeightVector &weights;
+    Eigen::Matrix<double, 3, 2> tangent_basis;
+};
+
+template <typename LossFunction, typename ResidualWeightVector = UniformWeightVector>
+class OneFocalRelativePoseJacobianAccumulator {
+  public:
+    OneFocalRelativePoseJacobianAccumulator(const std::vector<Point2D> &points2D_1, const std::vector<Point2D> &points2D_2,
+                                            const LossFunction &l, const ResidualWeightVector &w = ResidualWeightVector())
+        : x1(points2D_1), x2(points2D_2), loss_fn(l), weights(w) {}
+
+    double residual(const ImagePair &image_pair) const {
+        Eigen::Matrix3d E;
+        essential_from_motion(image_pair.pose, &E);
+        Eigen::DiagonalMatrix<double, 3> K1_inv(1.0, 1.0, image_pair.camera1.focal());
+        Eigen::DiagonalMatrix<double, 3> K2_inv(1.0, 1.0, image_pair.camera2.focal());
+
+        Eigen::Matrix3d F = K2_inv * (E * K1_inv);
+
+        double cost = 0.0;
+        for (size_t k = 0; k < x1.size(); ++k) {
+            double C = x2[k].homogeneous().dot(F * x1[k].homogeneous());
+            double nJc_sq = (F.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                            (F.block<3, 2>(0, 0).transpose() * x2[k].homogeneous()).squaredNorm();
+
+            double r2 = (C * C) / nJc_sq;
+            cost += weights[k] * loss_fn.loss(r2);
+        }
+
+        return cost;
+    }
+
+    size_t accumulate(const ImagePair &image_pair, Eigen::Matrix<double, 6, 6> &JtJ, Eigen::Matrix<double, 6, 1> &Jtr) {
+        // We start by setting up a basis for the updates in the translation (orthogonal to t)
+        // We find the minimum element of t and cross product with the corresponding basis vector.
+        // (this ensures that the first cross product is not close to the zero vector)
+        CameraPose pose = image_pair.pose;
+        if (std::abs(pose.t.x()) < std::abs(pose.t.y())) {
+            // x < y
+            if (std::abs(pose.t.x()) < std::abs(pose.t.z())) {
+                tangent_basis.col(0) = pose.t.cross(Eigen::Vector3d::UnitX()).normalized();
+            } else {
+                tangent_basis.col(0) = pose.t.cross(Eigen::Vector3d::UnitZ()).normalized();
+            }
+        } else {
+            // x > y
+            if (std::abs(pose.t.y()) < std::abs(pose.t.z())) {
+                tangent_basis.col(0) = pose.t.cross(Eigen::Vector3d::UnitY()).normalized();
+            } else {
+                tangent_basis.col(0) = pose.t.cross(Eigen::Vector3d::UnitZ()).normalized();
+            }
+        }
+        tangent_basis.col(1) = tangent_basis.col(0).cross(pose.t).normalized();
+
+        double f1 = image_pair.camera1.focal();
+        double f2 = image_pair.camera2.focal();
+        Eigen::Matrix3d K_inv;
+        Eigen::DiagonalMatrix<double, 3> K1_inv(1.0, 1.0, f1);
+        Eigen::DiagonalMatrix<double, 3> K2_inv(1.0, 1.0, f2);
+
+        Eigen::Matrix3d E, R;
+        R = pose.R();
+        essential_from_motion(pose, &E);
+        Eigen::Matrix3d F = K2_inv * (E * K1_inv);
+
+        // Matrices contain the jacobians of E w.r.t. the rotation and translation parameters
+        Eigen::Matrix<double, 9, 3> dR;
+        Eigen::Matrix<double, 9, 2> dt;
+
+        // Each column is vec(E*skew(e_k)) where e_k is k:th basis vector
+        dR.block<3, 1>(0, 0).setZero();
+        dR.block<3, 1>(0, 1) = -E.col(2);
+        dR.block<3, 1>(0, 2) = E.col(1);
+        dR.block<3, 1>(3, 0) = E.col(2);
+        dR.block<3, 1>(3, 1).setZero();
+        dR.block<3, 1>(3, 2) = -E.col(0);
+        dR.block<3, 1>(6, 0) = -E.col(1);
+        dR.block<3, 1>(6, 1) = E.col(0);
+        dR.block<3, 1>(6, 2).setZero();
+
+        Eigen::Matrix<double, 1, 9> dFdE;
+        dFdE << 1.0, 1.0, f2, 1.0, 1.0, f2, f1, f1, f1 * f2;
+
+        Eigen::Matrix<double, 9, 1> dFdf1;
+        dFdf1 << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, E(0, 2), E(1, 2), E(2, 2) * f2;
+
+        // Each column is vec(skew(tangent_basis[k])*R)
+        dt.block<3, 1>(0, 0) = tangent_basis.col(0).cross(R.col(0));
+        dt.block<3, 1>(0, 1) = tangent_basis.col(1).cross(R.col(0));
+        dt.block<3, 1>(3, 0) = tangent_basis.col(0).cross(R.col(1));
+        dt.block<3, 1>(3, 1) = tangent_basis.col(1).cross(R.col(1));
+        dt.block<3, 1>(6, 0) = tangent_basis.col(0).cross(R.col(2));
+        dt.block<3, 1>(6, 1) = tangent_basis.col(1).cross(R.col(2));
+
+        Eigen::VectorXd df(9);
+
+        size_t num_residuals = 0;
+        for (size_t k = 0; k < x1.size(); ++k) {
+            double C = x2[k].homogeneous().dot(F * x1[k].homogeneous());
+
+            // J_C is the Jacobian of the epipolar constraint w.r.t. the image points
+            Eigen::Vector4d J_C;
+            J_C << F.block<3, 2>(0, 0).transpose() * x2[k].homogeneous(), F.block<2, 3>(0, 0) * x1[k].homogeneous();
+            const double nJ_C = J_C.norm();
+            const double inv_nJ_C = 1.0 / nJ_C;
+            const double r = C * inv_nJ_C;
+
+            // Compute weight from robust loss function (used in the IRLS)
+            const double weight = weights[k] * loss_fn.weight(r * r);
+            if (weight == 0.0) {
+                continue;
+            }
+            num_residuals++;
+
+            // Compute Jacobian of Sampson error w.r.t the fundamental/essential matrix (3x3)
+            Eigen::Matrix<double, 1, 9> dF;
+            dF << x1[k](0) * x2[k](0), x1[k](0) * x2[k](1), x1[k](0), x1[k](1) * x2[k](0), x1[k](1) * x2[k](1),
+                x1[k](1), x2[k](0), x2[k](1), 1.0;
+            const double s = C * inv_nJ_C * inv_nJ_C;
+            dF(0) -= s * (J_C(2) * x1[k](0) + J_C(0) * x2[k](0));
+            dF(1) -= s * (J_C(3) * x1[k](0) + J_C(0) * x2[k](1));
+            dF(2) -= s * (J_C(0));
+            dF(3) -= s * (J_C(2) * x1[k](1) + J_C(1) * x2[k](0));
+            dF(4) -= s * (J_C(3) * x1[k](1) + J_C(1) * x2[k](1));
+            dF(5) -= s * (J_C(1));
+            dF(6) -= s * (J_C(2));
+            dF(7) -= s * (J_C(3));
+            dF *= inv_nJ_C;
+
+            // and then w.r.t. the pose parameters (rotation + tangent basis for translation)
+            Eigen::Matrix<double, 1, 6> J;
+            J.block<1, 3>(0, 0) = dF.cwiseProduct(dFdE) * dR;
+            J.block<1, 2>(0, 3) = dF.cwiseProduct(dFdE) * dt;
+            J(0, 5) = dF * dFdf1;
+
+            // Accumulate into JtJ and Jtr
+            Jtr += weight * C * inv_nJ_C * J.transpose();
+            JtJ(0, 0) += weight * (J(0) * J(0));
+            JtJ(1, 0) += weight * (J(1) * J(0));
+            JtJ(1, 1) += weight * (J(1) * J(1));
+            JtJ(2, 0) += weight * (J(2) * J(0));
+            JtJ(2, 1) += weight * (J(2) * J(1));
+            JtJ(2, 2) += weight * (J(2) * J(2));
+            JtJ(3, 0) += weight * (J(3) * J(0));
+            JtJ(3, 1) += weight * (J(3) * J(1));
+            JtJ(3, 2) += weight * (J(3) * J(2));
+            JtJ(3, 3) += weight * (J(3) * J(3));
+            JtJ(4, 0) += weight * (J(4) * J(0));
+            JtJ(4, 1) += weight * (J(4) * J(1));
+            JtJ(4, 2) += weight * (J(4) * J(2));
+            JtJ(4, 3) += weight * (J(4) * J(3));
+            JtJ(4, 4) += weight * (J(4) * J(4));
+            JtJ(5, 0) += weight * (J(5) * J(0));
+            JtJ(5, 1) += weight * (J(5) * J(1));
+            JtJ(5, 2) += weight * (J(5) * J(2));
+            JtJ(5, 3) += weight * (J(5) * J(3));
+            JtJ(5, 4) += weight * (J(5) * J(4));
+            JtJ(5, 5) += weight * (J(5) * J(5));
+        }
+        return num_residuals;
+    }
+
+    ImagePair step(Eigen::Matrix<double, 6, 1> dp, const ImagePair &image_pair) const {
+        CameraPose pose_new;
+        pose_new.q = quat_step_post(image_pair.pose.q, dp.block<3, 1>(0, 0));
+        pose_new.t = image_pair.pose.t + tangent_basis * dp.block<2, 1>(3, 0);
+        double focal_new = std::max(image_pair.camera1.focal() + dp(5, 0), 0.0);
+        Camera camera1_new = Camera("SIMPLE_PINHOLE", {focal_new, 0.0, 0.0}, -1, -1);
+        return ImagePair(pose_new, camera1_new, image_pair.camera2);
+    }
+    typedef CameraPose param_t;
     static constexpr size_t num_params = 6;
 
   private:

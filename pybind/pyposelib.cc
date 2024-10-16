@@ -519,6 +519,33 @@ estimate_three_view_shared_focal_relative_pose_wrapper(const std::vector<Eigen::
     return std::make_pair(image_triplet, output_dict);
 }
 
+std::pair<ImageTriplet, py::dict> estimate_three_view_case2_relative_pose_wrapper(const std::vector<Eigen::Vector2d> points2D_1,
+                                                      const std::vector<Eigen::Vector2d> points2D_2,
+                                                      const std::vector<Eigen::Vector2d> points2D_3,
+                                                      const py::dict &camera3_dict,
+                                                      const Eigen::Vector2d pp1,
+                                                      const py::dict &ransac_opt_dict,
+                                                      const py::dict &bundle_opt_dict) {
+    RansacOptions ransac_opt;
+    update_ransac_options(ransac_opt_dict, ransac_opt);
+
+    BundleOptions bundle_opt;
+    bundle_opt.loss_scale = 0.5 * ransac_opt.max_epipolar_error;
+    update_bundle_options(bundle_opt_dict, bundle_opt);
+
+    ImageTriplet image_triplet;
+    std::vector<char> inlier_mask;
+    Camera camera3 = camera_from_dict(camera3_dict);
+
+    RansacStats stats = estimate_3v_case2_relative_pose(points2D_1, points2D_2, points2D_3,
+                                                              pp1, camera3, ransac_opt,
+                                                              bundle_opt, &image_triplet, &inlier_mask);
+    py::dict output_dict;
+    write_to_dict(stats, output_dict);
+    output_dict["inliers"] = convert_inlier_vector(inlier_mask);
+    return std::make_pair(image_triplet, output_dict);
+}
+
 std::pair<ImagePair, py::dict>
 estimate_shared_focal_relative_pose_wrapper(const std::vector<Eigen::Vector2d> points2D_1,
                                             const std::vector<Eigen::Vector2d> points2D_2, const Eigen::Vector2d pp,
@@ -537,6 +564,33 @@ estimate_shared_focal_relative_pose_wrapper(const std::vector<Eigen::Vector2d> p
     std::vector<Image> output;
     RansacStats stats = estimate_shared_focal_relative_pose(points2D_1, points2D_2, pp, ransac_opt, bundle_opt,
                                                             &image_pair, &inlier_mask);
+
+    py::dict output_dict;
+    write_to_dict(stats, output_dict);
+    output_dict["inliers"] = convert_inlier_vector(inlier_mask);
+    return std::make_pair(image_pair, output_dict);
+}
+
+std::pair<ImagePair, py::dict>
+estimate_onefocal_relative_pose_wrapper(const std::vector<Eigen::Vector2d> points2D_1,
+                                        const std::vector<Eigen::Vector2d> points2D_2, const py::dict &camera2_dict,
+                                        const Eigen::Vector2d pp1, const py::dict &ransac_opt_dict,
+                                        const py::dict &bundle_opt_dict) {
+
+    RansacOptions ransac_opt;
+    update_ransac_options(ransac_opt_dict, ransac_opt);
+    Camera camera2 = camera_from_dict(camera2_dict);
+
+    BundleOptions bundle_opt;
+    bundle_opt.loss_scale = 0.5 * ransac_opt.max_epipolar_error;
+    update_bundle_options(bundle_opt_dict, bundle_opt);
+
+    ImagePair image_pair;
+    std::vector<char> inlier_mask;
+
+    std::vector<Image> output;
+    RansacStats stats = estimate_onefocal_relative_pose(points2D_1, points2D_2, camera2, pp1, ransac_opt, bundle_opt,
+                                                        &image_pair, &inlier_mask);
 
     py::dict output_dict;
     write_to_dict(stats, output_dict);
@@ -817,6 +871,18 @@ std::pair<std::vector<CameraPose>, std::vector<Point3D>> motion_from_homography_
     return std::make_pair(poses, normals);
 }
 
+std::tuple<Camera, Camera, int> focals_from_fundamental_iterative_wrapper(const Eigen::Matrix3d F,
+                                                                          const py::dict &camera1_dict,
+                                                                          const py::dict &camera2_dict,
+                                                                          const int max_iters,
+                                                                          const Eigen::Vector4d weights) {
+
+    Camera camera1 = camera_from_dict(camera1_dict);
+    Camera camera2 = camera_from_dict(camera2_dict);
+
+    return focals_from_fundamental_iterative(F, camera1, camera2, max_iters, weights);
+}
+
 } // namespace poselib
 
 PYBIND11_MODULE(poselib, m) {
@@ -846,7 +912,9 @@ PYBIND11_MODULE(poselib, m) {
     py::class_<poselib::ImageTriplet>(m, "ImageTriplet")
             .def(py::init<>())
             .def_readwrite("poses", &poselib::ImageTriplet::poses)
-            .def_readwrite("camera", &poselib::ImageTriplet::camera);
+            .def_readwrite("camera1", &poselib::ImageTriplet::camera1)
+            .def_readwrite("camera2", &poselib::ImageTriplet::camera2)
+            .def_readwrite("camera3", &poselib::ImageTriplet::camera3);
 
     py::class_<poselib::Camera>(m, "Camera")
         .def(py::init<>())
@@ -947,8 +1015,17 @@ PYBIND11_MODULE(poselib, m) {
           py::arg("points2D_1"), py::arg("points2D_2"), py::arg("points2D_3"), py::arg("pp") = Eigen::Vector2d(0.0, 0.0),
           py::arg("ransac_opt") = py::dict(), py::arg("bundle_opt") = py::dict(),
           "Relative pose estimation with non-linear refinement.");
+    m.def("estimate_three_view_case2_relative_pose", &poselib::estimate_three_view_case2_relative_pose_wrapper,
+          py::arg("points2D_1"), py::arg("points2D_2"), py::arg("points2D_3"), py::arg("camera3"),
+          py::arg("pp") = Eigen::Vector2d(0.0, 0.0),
+          py::arg("ransac_opt") = py::dict(), py::arg("bundle_opt") = py::dict(),
+          "Relative pose estimation with non-linear refinement.");
     m.def("estimate_shared_focal_relative_pose", &poselib::estimate_shared_focal_relative_pose_wrapper,
           py::arg("points2D_1"), py::arg("points2D_2"), py::arg("pp") = Eigen::Vector2d::Zero(),
+          py::arg("ransac_opt") = py::dict(), py::arg("bundle_opt") = py::dict(),
+          "Relative pose estimation with unknown equal focal lengths with non-linear refinement.");
+    m.def("estimate_onefocal_relative_pose", &poselib::estimate_onefocal_relative_pose_wrapper,
+          py::arg("points2D_1"), py::arg("points2D_2"), py::arg("camera2"), py::arg("pp1") = Eigen::Vector2d::Zero(),
           py::arg("ransac_opt") = py::dict(), py::arg("bundle_opt") = py::dict(),
           "Relative pose estimation with unknown equal focal lengths with non-linear refinement.");
     m.def("estimate_fundamental", &poselib::estimate_fundamental_wrapper, py::arg("points2D_1"), py::arg("points2D_2"),
@@ -1001,6 +1078,11 @@ PYBIND11_MODULE(poselib, m) {
           "Generalized relative pose non-linear refinement.");
 
     m.def("motion_from_homography", &poselib::motion_from_homography_wrapper, py::arg("H"));
+    m.def("focals_from_fundamental", &poselib::focals_from_fundamental, py::arg("F"), py::arg("pp1"), py::arg("pp2"));
+    m.def("focals_from_fundamental_iterative", &poselib::focals_from_fundamental_iterative_wrapper, py::arg("F"),
+          py::arg("camera1_dict"), py::arg("camera2_dict"), py::arg("max_iters") = 50,
+          py::arg("weights") = Eigen::Vector4d(5.0e-4, 1.0, 5.0e-4, 1.0));
+
     m.def("solver_H3f", &poselib::solver_homo3f, py::arg("H12"), py::arg("H13"));
     m.def("focal_from_homography", &poselib::estimate_focal_homography, py::arg("x1_1"), py::arg("x2_1"),
           py::arg("x1_2"), py::arg("x3_2"), py::arg("pp"), py::arg("iterations"), py::arg("inlier_threshold"),

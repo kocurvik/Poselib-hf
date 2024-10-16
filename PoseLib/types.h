@@ -55,9 +55,10 @@ struct RansacOptions {
     bool threeview_check = false;
     bool use_homography = false;
     bool use_hc = false;
-    bool scaled_relpose = false;
     bool use_p3p = false;
     bool use_degensac = false;
+    int problem = 1;
+    bool use_onefocal = false;
 };
 
 struct RansacStats {

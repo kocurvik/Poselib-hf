@@ -30,6 +30,7 @@
 #define POSELIB_ROBUST_LM_IMPL_
 
 #include "PoseLib/types.h"
+#include <iostream>
 
 namespace poselib {
 

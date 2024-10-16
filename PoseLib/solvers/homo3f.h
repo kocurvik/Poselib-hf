@@ -7,6 +7,8 @@
 
 namespace poselib {
 std::vector<double> solver_homo3f(Eigen::Matrix3d &H12, Eigen::Matrix3d &H13);
+std::vector<double> solver_homo_case2(Eigen::Matrix3d &H12, Eigen::Matrix3d &H13);
+Eigen::MatrixXd solver_homo_case3(Eigen::Matrix3d &H12, Eigen::Matrix3d &H13);
 }
 
 #endif // POSELIB_HOMO3F_H

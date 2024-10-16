@@ -25,6 +25,7 @@ set(SOURCES
     solvers/relpose_5pt.cc
     solvers/relpose_7pt.cc
     solvers/relpose_6pt_focal.cc
+    solvers/relpose_6pt_onefocal.cc
     solvers/gen_relpose_upright_4pt.cc
     solvers/gen_relpose_5p1pt.cc
     solvers/gen_relpose_6pt.cc
@@ -32,6 +33,14 @@ set(SOURCES
     solvers/homo3f.cc
     solvers/threeview_hc.cc
     solvers/plane_parallax_shared_focal.cc
+    solvers/homo3f_utils.cc
+    solvers/var/coeffs_var_eq1.cc
+    solvers/var/coeffs_var_eq2.cc
+    solvers/var/coeffs_var_eq3.cc
+    solvers/var/coeffs_var_eq4.cc
+    solvers/var/coeffs_var_eq5.cc
+    solvers/var/coeffs_var_eq6.cc
+    solvers/var/coeffs_var_eq7.cc
     misc/qep.cc
     misc/univariate.cc
     misc/essential.cc
@@ -78,11 +87,14 @@ set(HEADERS_PUBLIC
     solvers/relpose_5pt.h
     solvers/relpose_7pt.h
     solvers/relpose_6pt_focal.h
+    solvers/relpose_6pt_onefocal.h
     solvers/gen_relpose_upright_4pt.h
     solvers/gen_relpose_5p1pt.h
     solvers/gen_relpose_6pt.h
     solvers/homography_4pt.h
     solvers/homo3f.h
+    solvers/homo3f_utils.h
+    solvers/var/coeff.h
     solvers/threeview_hc.h
     solvers/plane_parallax_shared_focal.h
     misc/quaternion.h
