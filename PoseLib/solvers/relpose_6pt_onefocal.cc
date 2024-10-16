@@ -8,50 +8,50 @@
 
 namespace poselib {
 
-void fast_eigenvector_solver_relpose_6p_onefocal(double *eigv, int neig, Eigen::Matrix<double, 9, 9> &AM,
-                             Eigen::Matrix<std::complex<double>, 3, 9> &sols) {
-    static const int ind[] = {2, 4, 6, 9, 12, 15, 18, 22, 25, 29};
-    // Truncated action matrix containing non-trivial rows
-    Eigen::Matrix<double, 10, 9> AMs;
-    double zi[5];
-
-    for (int i = 0; i < 10; i++) {
-        AMs.row(i) = AM.row(ind[i]);
-    }
-    for (int i = 0; i < neig; i++) {
-        zi[0] = eigv[i];
-        for (int j = 1; j < 5; j++) {
-            zi[j] = zi[j - 1] * eigv[i];
-        }
-        Eigen::Matrix<double, 10, 10> AA;
-        AA.col(0) = AMs.col(2);
-        AA.col(1) = AMs.col(3) + zi[0] * AMs.col(4);
-        AA.col(2) = AMs.col(5) + zi[0] * AMs.col(6);
-        AA.col(3) = AMs.col(1) + zi[0] * AMs.col(7) + zi[1] * AMs.col(8) + zi[2] * AMs.col(9);
-        AA.col(4) = AMs.col(11) + zi[0] * AMs.col(12);
-        AA.col(5) = AMs.col(13) + zi[0] * AMs.col(14) + zi[1] * AMs.col(15);
-        AA.col(6) = AMs.col(10) + zi[0] * AMs.col(16) + zi[1] * AMs.col(17) + zi[2] * AMs.col(18);
-        AA.col(7) = AMs.col(20) + zi[0] * AMs.col(21) + zi[1] * AMs.col(22);
-        AA.col(8) = AMs.col(19) + zi[0] * AMs.col(23) + zi[1] * AMs.col(24) + zi[2] * AMs.col(25);
-        AA.col(9) = AMs.col(0) + zi[0] * AMs.col(26) + zi[1] * AMs.col(27) + zi[2] * AMs.col(28) + zi[3] * AMs.col(29);
-        AA(0, 0) = AA(0, 0) - zi[0];
-        AA(1, 1) = AA(1, 1) - zi[1];
-        AA(2, 2) = AA(2, 2) - zi[1];
-        AA(3, 3) = AA(3, 3) - zi[3];
-        AA(4, 4) = AA(4, 4) - zi[1];
-        AA(5, 5) = AA(5, 5) - zi[2];
-        AA(6, 6) = AA(6, 6) - zi[3];
-        AA(7, 7) = AA(7, 7) - zi[2];
-        AA(8, 8) = AA(8, 8) - zi[3];
-        AA(9, 9) = AA(9, 9) - zi[4];
-
-        Eigen::Matrix<double, 9, 1> s = AA.leftCols(9).colPivHouseholderQr().solve(-AA.col(9));
-        sols(0, i) = s(3);
-        sols(1, i) = s(6);
-        sols(2, i) = s(8);
-        sols(3, i) = zi[0];
-    }
-}
+//void fast_eigenvector_solver_relpose_6p_onefocal(double *eigv, int neig, Eigen::Matrix<double, 9, 9> &AM,
+//                             Eigen::Matrix<std::complex<double>, 3, 9> &sols) {
+//    static const int ind[] = {2, 4, 6, 9, 12, 15, 18, 22, 25, 29};
+//    // Truncated action matrix containing non-trivial rows
+//    Eigen::Matrix<double, 10, 9> AMs;
+//    double zi[5];
+//
+//    for (int i = 0; i < 10; i++) {
+//        AMs.row(i) = AM.row(ind[i]);
+//    }
+//    for (int i = 0; i < neig; i++) {
+//        zi[0] = eigv[i];
+//        for (int j = 1; j < 5; j++) {
+//            zi[j] = zi[j - 1] * eigv[i];
+//        }
+//        Eigen::Matrix<double, 10, 10> AA;
+//        AA.col(0) = AMs.col(2);
+//        AA.col(1) = AMs.col(3) + zi[0] * AMs.col(4);
+//        AA.col(2) = AMs.col(5) + zi[0] * AMs.col(6);
+//        AA.col(3) = AMs.col(1) + zi[0] * AMs.col(7) + zi[1] * AMs.col(8) + zi[2] * AMs.col(9);
+//        AA.col(4) = AMs.col(11) + zi[0] * AMs.col(12);
+//        AA.col(5) = AMs.col(13) + zi[0] * AMs.col(14) + zi[1] * AMs.col(15);
+//        AA.col(6) = AMs.col(10) + zi[0] * AMs.col(16) + zi[1] * AMs.col(17) + zi[2] * AMs.col(18);
+//        AA.col(7) = AMs.col(20) + zi[0] * AMs.col(21) + zi[1] * AMs.col(22);
+//        AA.col(8) = AMs.col(19) + zi[0] * AMs.col(23) + zi[1] * AMs.col(24) + zi[2] * AMs.col(25);
+//        AA.col(9) = AMs.col(0) + zi[0] * AMs.col(26) + zi[1] * AMs.col(27) + zi[2] * AMs.col(28) + zi[3] * AMs.col(29);
+//        AA(0, 0) = AA(0, 0) - zi[0];
+//        AA(1, 1) = AA(1, 1) - zi[1];
+//        AA(2, 2) = AA(2, 2) - zi[1];
+//        AA(3, 3) = AA(3, 3) - zi[3];
+//        AA(4, 4) = AA(4, 4) - zi[1];
+//        AA(5, 5) = AA(5, 5) - zi[2];
+//        AA(6, 6) = AA(6, 6) - zi[3];
+//        AA(7, 7) = AA(7, 7) - zi[2];
+//        AA(8, 8) = AA(8, 8) - zi[3];
+//        AA(9, 9) = AA(9, 9) - zi[4];
+//
+//        Eigen::Matrix<double, 9, 1> s = AA.leftCols(9).colPivHouseholderQr().solve(-AA.col(9));
+//        sols(0, i) = s(3);
+//        sols(1, i) = s(6);
+//        sols(2, i) = s(8);
+//        sols(3, i) = zi[0];
+//    }
+//}
 
 int solver_relpose_6pt_onefocal(const Eigen::VectorXd &data, Eigen::Matrix<std::complex<double>, 3, 9> &sols) {
     // Compute coefficients
