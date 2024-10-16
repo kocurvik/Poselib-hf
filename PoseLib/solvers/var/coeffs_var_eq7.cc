@@ -1,4 +1,7 @@
 #include <Eigen/Dense>
+
+#include "PoseLib/solvers/var/coeff.h"
+
 using namespace Eigen;
 
 MatrixXd var_eq7(double a0, double a1, double a2, double a3, double a4,

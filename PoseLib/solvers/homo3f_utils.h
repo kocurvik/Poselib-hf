@@ -6,7 +6,6 @@
 #define POSELIB_HOMO3F_UTILS_H
 
 #include <Eigen/Core>
-#include "PoseLib/solvers/homo3f_utils.cc"
 
 namespace poselib {
 double coeff0(double b0, double b1, double b2, double b3, double b4, double b5, double d0, double d1, double d2,

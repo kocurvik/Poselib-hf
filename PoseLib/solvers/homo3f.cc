@@ -180,7 +180,7 @@ Eigen::MatrixXd solver_homo_case3(Eigen::Matrix3d &H12, Eigen::Matrix3d &H13) {
 
     K.block<7, 18>(11, 0) = M;
 
-    EigenSolver<Eigen::Matrix<double, 18, 18>> es(K);
+    Eigen::EigenSolver<Eigen::Matrix<double, 18, 18>> es(K);
     const Eigen::VectorXcd& eigenvalues = es.eigenvalues();
     Eigen::MatrixXd sols = Eigen::MatrixXd::Zero(2, 18);
     Eigen::MatrixXd U = Eigen::MatrixXd::Zero(7, 7);
