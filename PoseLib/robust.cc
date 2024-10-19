@@ -332,8 +332,8 @@ RansacStats estimate_onefocal_relative_pose(const std::vector<Point2D> &points2D
         for (size_t k = 0; k < num_pts; ++k) {
             if (!(*inliers)[k])
                 continue;
-            x1_inliers.push_back(points2D_1[k]);
-            x2_inliers.push_back(points2D_2[k]);
+            x1_inliers.push_back(x1_norm[k]);
+            x2_inliers.push_back(x2_norm[k]);
         }
 
         refine_onefocal_relpose(x1_inliers, x2_inliers, image_pair, bundle_opt_scaled);
