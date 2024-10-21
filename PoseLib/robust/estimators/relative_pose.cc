@@ -35,6 +35,7 @@
 #include "PoseLib/solvers/homo3f.h"
 #include "PoseLib/solvers/homography_4pt.h"
 #include "PoseLib/solvers/p3p.h"
+#include "PoseLib/solvers/p3p_ding.h"
 #include "PoseLib/solvers/p4pf.h"
 #include "PoseLib/solvers/plane_parallax_shared_focal.h"
 #include "PoseLib/solvers/relpose_5pt.h"
@@ -341,7 +342,7 @@ void ThreeViewSharedFocalRelativePoseEstimator::estimate_homography_p3p(std::vec
 
             std::vector<CameraPose> models13;
 
-            p3p(x3s, triangulated_12, &models13);
+            p3p_ding(x3s, triangulated_12, &models13);
 
             for (CameraPose pose13 : models13) {
                 ImageTriplet image_triplet = ImageTriplet(ThreeViewCameraPose(pose12, pose13), camera);
@@ -472,7 +473,7 @@ void ThreeViewSharedFocalRelativePoseEstimator::estimate_relpose(std::vector<Ima
 
         std::vector<CameraPose> models13;
 
-        p3p(x3s, triangulated_12, &models13);
+        p3p_ding(x3s, triangulated_12, &models13);
 
         for (CameraPose pose13 : models13){
             ImageTriplet image_triplet = ImageTriplet(ThreeViewCameraPose(pair12.pose, pose13), pair12.camera1);
@@ -683,7 +684,7 @@ void ThreeViewCase2RelativePoseEstimator::estimate_homography_p3p(std::vector<Im
 
             std::vector<CameraPose> models13;
 
-            p3p(x3p, triangulated_12, &models13);
+            p3p_ding(x3p, triangulated_12, &models13);
 
             for (CameraPose pose13 : models13) {
                 ImageTriplet image_triplet = ImageTriplet(ThreeViewCameraPose(pose12, pose13), camera1, camera1, camera3);
@@ -812,7 +813,7 @@ void ThreeViewCase2RelativePoseEstimator::estimate_relpose(std::vector<ImageTrip
 
         std::vector<CameraPose> models13;
 
-        p3p(x3p, triangulated_12, &models13);
+        p3p_ding(x3p, triangulated_12, &models13);
 
         for (CameraPose pose13 : models13){
             ImageTriplet image_triplet = ImageTriplet(ThreeViewCameraPose(pair12.pose, pose13), pair12.camera1, pair12.camera1, camera3);
@@ -855,7 +856,7 @@ void ThreeViewCase2RelativePoseEstimator::estimate_relpose_onefocal(std::vector<
 
         std::vector<CameraPose> models12;
 
-        p3p(x3p, triangulated_13, &models12);
+        p3p_ding(x3p, triangulated_13, &models12);
 
         for (CameraPose pose12 : models12){
             ImageTriplet image_triplet = ImageTriplet(ThreeViewCameraPose(pose12, pair13.pose), pair13.camera1, pair13.camera1, camera3);
@@ -1022,7 +1023,7 @@ void ThreeViewCase3RelativePoseEstimator::estimate_homography_p3p(std::vector<Im
 
             std::vector<CameraPose> models13;
 
-            p3p(x3p, triangulated_12, &models13);
+            p3p_ding(x3p, triangulated_12, &models13);
 
             for (CameraPose pose13 : models13) {
                 ImageTriplet image_triplet = ImageTriplet(ThreeViewCameraPose(pose12, pose13), camera1, camera1, camera3);
