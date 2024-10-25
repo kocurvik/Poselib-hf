@@ -1356,7 +1356,6 @@ void ThreeViewCase4RelativePoseEstimator::estimate_relpose(std::vector<ImageTrip
     }
 
     for (ImagePair pair13 : models13){
-        std::cout << "f1: " << pair13.camera1.focal() << std::endl;
         for (size_t i = 0; i < sample_sz_13; i++){
             triangulated_13[i] = triangulate(pair13, x1s[i], x3s[i]);
         }

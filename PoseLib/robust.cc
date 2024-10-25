@@ -512,6 +512,8 @@ RansacStats estimate_3v_case2_relative_pose(const std::vector<Point2D> &x1, cons
     RansacOptions ransac_opt_scaled = ransac_opt;
     ransac_opt_scaled.max_epipolar_error = ransac_opt.max_epipolar_error / scale;
 
+    std::cout << "Scaled f1: " << 1600 / scale << " Scaled f2: " << 1400 / scale << std::endl;
+
     Camera scaled_camera3 = Camera("SIMPLE_PINHOLE", {camera3.focal()/ scale, 0.0, 0.0}, -1, -1);
 
     RansacStats stats =
