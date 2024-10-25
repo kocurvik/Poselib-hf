@@ -512,6 +512,8 @@ RansacStats estimate_3v_case2_relative_pose(const std::vector<Point2D> &x1, cons
     RansacOptions ransac_opt_scaled = ransac_opt;
     ransac_opt_scaled.max_epipolar_error = ransac_opt.max_epipolar_error / scale;
 
+    std::cout << "Scaled f1: " << 1600 / scale << " Scaled f2: " << 1400 / scale << std::endl;
+
     Camera scaled_camera3 = Camera("SIMPLE_PINHOLE", {camera3.focal()/ scale, 0.0, 0.0}, -1, -1);
 
     RansacStats stats =
@@ -536,7 +538,16 @@ RansacStats estimate_3v_case2_relative_pose(const std::vector<Point2D> &x1, cons
         BundleOptions bundle_opt_scaled = bundle_opt;
         bundle_opt_scaled.loss_scale = bundle_opt.loss_scale / scale;
 
-        refine_3v_case2_relpose(x1_inliers, x2_inliers, x3_inliers, image_triplet, bundle_opt_scaled);
+        switch (ransac_opt.problem) {
+        case 2:
+            refine_3v_case2_relpose(x1_inliers, x2_inliers, x3_inliers, image_triplet, bundle_opt_scaled);
+            break;
+        case 4:
+            refine_3v_case4_relpose(x1_inliers, x2_inliers, x3_inliers, image_triplet, bundle_opt_scaled);
+            break;
+        default:
+            throw std::runtime_error("Wrong problem number");
+        }
     }
 
     image_triplet->camera1.params[0] *= scale;

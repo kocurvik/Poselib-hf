@@ -283,6 +283,68 @@ class ThreeViewCase3RelativePoseEstimator {
     bool best_degenerate_model_found;
 };
 
+class ThreeViewCase4RelativePoseEstimator {
+  public:
+    ThreeViewCase4RelativePoseEstimator(const RansacOptions &ransac_opt, const Camera &camera3,
+                                        const std::vector<Point2D> &points2D_1,
+                                        const std::vector<Point2D> &points2D_2,
+                                        const std::vector<Point2D> &points2D_3)
+        : sample_sz(ransac_opt.use_homography ? 4 : 6), sample_sz_13(ransac_opt.use_homography ? 3 : 4),
+          num_data(points2D_1.size()), opt(ransac_opt), x1(points2D_1), x2(points2D_2), x3(points2D_3), camera3(camera3),
+          sampler(num_data, sample_sz, opt.seed, opt.progressive_sampling, opt.max_prosac_iterations),
+          tuples(opt.use_degensac ? std::vector<std::vector<int>>{
+                                        {0, 1, 2, 3, 4},
+                                        {0, 1, 2, 3, 5},
+                                        {0, 1, 2, 4, 5},
+                                        {0, 1, 3, 4, 5},
+                                        {1, 2, 3, 4, 5}} : std::vector<std::vector<int>>()){
+        x1n.resize(sample_sz);
+        x2n.resize(sample_sz);
+        x3n.resize(sample_sz);
+        x1s.resize(sample_sz_13);
+        x2s.resize(sample_sz_13);
+        x3s.resize(sample_sz_13);
+        x3p.resize(sample_sz_13);
+        x2p_2d.resize(sample_sz_13);
+        sample.resize(sample_sz);
+        K3 = Eigen::DiagonalMatrix<double, 3>(camera3.focal(), camera3.focal(), 1.0);
+        x3u.resize(num_data);
+        for (size_t k = 0; k < num_data; ++k){
+            Eigen::Vector2d x;
+            camera3.unproject(x3[k], &x);
+            x3u[k] = x.homogeneous().normalized();
+        }
+    }
+
+
+    void generate_models(std::vector<ImageTriplet> *models);
+    void estimate_homography_p3p(std::vector<ImageTriplet> *models);
+    void estimate_relpose(std::vector<ImageTriplet> *models);
+    double score_model(const ImageTriplet &image_triplet, size_t *inlier_count) const;
+    void refine_model(ImageTriplet *image_triplet) const;
+    double score_model(const ImagePair &image_pair, size_t *inlier_count) const;
+
+    const size_t sample_sz;
+    const size_t sample_sz_13;
+    const size_t num_data;
+
+  private:
+    const RansacOptions &opt;
+    const std::vector<Point2D> &x1;
+    const std::vector<Point2D> &x2;
+    const std::vector<Point2D> &x3;
+    const Camera &camera3;
+    Eigen::DiagonalMatrix<double, 3> K3;
+
+    RandomSampler sampler;
+    // pre-allocated vectors for sampling
+    std::vector<Eigen::Vector3d> x1n, x2n, x3n, x1s, x2s, x3s, x3p, x3u;
+    std::vector<Eigen::Vector2d> x2p_2d;
+    std::vector<size_t> sample;
+
+    const std::vector<std::vector<int>> tuples;
+};
+
 class ThreeViewSharedFocalUnscaledRelativePoseEstimator {
   public:
     ThreeViewSharedFocalUnscaledRelativePoseEstimator(const RansacOptions &ransac_opt,

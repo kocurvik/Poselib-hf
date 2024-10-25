@@ -210,4 +210,104 @@ Eigen::MatrixXd solver_homo_case3(Eigen::Matrix3d &H12, Eigen::Matrix3d &H13) {
     return sols;
 }
 
+Eigen::MatrixXd solver_homo_case4(Eigen::Matrix3d &H12, Eigen::Matrix3d &H13) {
+
+    // using namespace Eigen;
+    // Compute coefficients
+
+    double g0 = H12(0, 0), g1 = H12(0, 1), g2 = H12(0, 2), g3 = H12(1, 0), g4 = H12(1, 1), g5 = H12(1, 2),
+           g6 = H12(2, 0), g7 = H12(2, 1), g8 = H12(2, 2);
+
+    double a0 = g6 * g6, b0 = g0 * g0 + g3 * g3, a1 = g6 * g7,
+           b1 = g0 * g1 + g3 * g4, a2 = g6 * g8, b2 = g0 * g2 + g3 * g5,
+           a3 = g7 * g7, b3 = g1 * g1 + g4 * g4, a4 = g7 * g8,
+           b4 = g1 * g2 + g4 * g5, a5 = g8 * g8, b5 = g2 * g2 + g5 * g5;
+
+    double m0 = H13(0, 0), m1 = H13(0, 1), m2 = H13(0, 2), m3 = H13(1, 0), m4 = H13(1, 1), m5 = H13(1, 2),
+           m6 = H13(2, 0), m7 = H13(2, 1), m8 = H13(2, 2);
+
+    double c0 = m6 * m6, d0 = m0 * m0 + m3 * m3, c1 = m6 * m7,
+           d1 = m0 * m1 + m3 * m4, c2 = m6 * m8, d2 = m0 * m2 + m3 * m5,
+           c3 = m7 * m7, d3 = m1 * m1 + m4 * m4, c4 = m7 * m8,
+           d4 = m1 * m2 + m4 * m5, c5 = m8 * m8, d5 = m2 * m2 + m5 * m5;
+
+    // std::cout << "g6" << g6 << "" << a0 << " " << b0 << " "<< a1 << " "<< b1 << " "<< a2<< " " << b2 <<std::endl;
+
+    Eigen::MatrixXd eq1 = svar_eq1(a0, a1, a2, a3, a4, a5, b0, b1, b2, b3, b4, b5, c0, c1, c2,
+                                   c3, c4, c5, d0, d1, d2, d3, d4, d5);
+    Eigen::MatrixXd eq2 = svar_eq2(a0, a1, a2, a3, a4, a5, b0, b1, b2, b3, b4, b5, c0, c1, c2,
+                                   c3, c4, c5, d0, d1, d2, d3, d4, d5);
+    Eigen::MatrixXd eq3 = svar_eq3(a0, a1, a2, a3, a4, a5, b0, b1, b2, b3, b4, b5, c0, c1, c2,
+                                   c3, c4, c5, d0, d1, d2, d3, d4, d5);
+    Eigen::MatrixXd eq4 = svar_eq4(a0, a1, a2, a3, a4, a5, b0, b1, b2, b3, b4, b5, c0, c1, c2,
+                                   c3, c4, c5, d0, d1, d2, d3, d4, d5);
+
+    Eigen::MatrixXd C(4,16);
+    C.row(0) = eq1;
+    C.row(1) = eq2;
+    C.row(2) = eq3;
+    C.row(3) = eq4;
+
+    Eigen::MatrixXd C0(4,4);
+    Eigen::MatrixXd C1(4,4);
+    Eigen::MatrixXd C2(4,4);
+    Eigen::MatrixXd C3(4,4);
+
+    C0 = C.block<4,4>(0,0);
+    C1 = C.block<4,4>(0,4);
+    C2 = C.block<4,4>(0,8);
+    C3 = C.block<4,4>(0,12);
+
+    Eigen::MatrixXd M(4, 12);
+    M << C0, C1, C2;
+    M = (-C3.partialPivLu().solve(M)).eval();
+    // M = (-C0.fullPivHouseholderQr().solve(M)).eval();
+
+    Eigen::MatrixXd K(12,12);
+    K.setZero();
+    K(0,4) = 1.0; K(1,5) = 1.0; K(2,6) = 1.0; K(3,7) = 1.0; K(4,8) = 1.0; K(5,9) = 1.0; K(6,10) = 1.0; K(7,11) = 1.0;
+
+    K.block<4, 12>(8, 0) = M;
+
+    // std::cout << K <<std::endl;
+    // MatrixXd K2(12,12);
+    // K2 = K.cast <double> ();
+    Eigen::EigenSolver<Eigen::Matrix<double, 12, 12>> es(K);
+    const Eigen::VectorXcd& eigenvalues = es.eigenvalues();
+    Eigen::MatrixXd sols = Eigen::MatrixXd::Zero(1, 12);
+    int k = 0;
+    for (int i = 0; i < 12; i++) // find real eigenvalues
+    {
+        if (abs(eigenvalues(i).imag()) > 0.001 || std::isnan(eigenvalues(i).real()) || eigenvalues(i).real() < 0.0) {
+            continue;
+        }
+        sols(0,k) = eigenvalues(i).real();
+        k++;
+    }
+
+    Eigen::MatrixXd U = Eigen::MatrixXd::Zero(4, 4);
+    Eigen::MatrixXd V = Eigen::MatrixXd::Zero(3, 1);
+
+    Eigen::MatrixXd res = Eigen::MatrixXd::Zero(2, k);
+    int m = 0;
+    double f;
+
+    for (int i = 0; i < k; i++)
+    {
+        f = sols(0, i);
+        U = f * f * f* C3 + f*f*C2 + f*C1 + C0;
+        V = -U.block<3, 3>(0, 1).partialPivLu().solve(U.block<3, 1>(0, 0));
+        if (  (V(0,0)>0) &&  (fabs(V(1,0)-V(0,0)*V(0,0)) < 0.01*V(1,0)))
+        {
+            res(0,m) = std::sqrt(sols(0,i));
+            res(1,m) = std::sqrt(V(0,0));
+            m++;
+        }
+    }
+
+    res.conservativeResize(2, m);
+
+    return res;
+}
+
 } // namespace poselib

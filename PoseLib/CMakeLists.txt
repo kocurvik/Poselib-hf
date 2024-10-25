@@ -41,6 +41,13 @@ set(SOURCES
     solvers/var/coeffs_var_eq5.cc
     solvers/var/coeffs_var_eq6.cc
     solvers/var/coeffs_var_eq7.cc
+    solvers/var/coeffs_svar_eq1.cc
+    solvers/var/coeffs_svar_eq2.cc
+    solvers/var/coeffs_svar_eq3.cc
+    solvers/var/coeffs_svar_eq4.cc
+    solvers/var/coeffs_svar_eq5.cc
+    solvers/var/coeffs_svar_eq6.cc
+    solvers/var/coeffs_svar_eq7.cc
     misc/qep.cc
     misc/univariate.cc
     misc/essential.cc
