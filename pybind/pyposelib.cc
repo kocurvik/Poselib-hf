@@ -1088,6 +1088,8 @@ PYBIND11_MODULE(poselib, m) {
           py::arg("x1_2"), py::arg("x3_2"), py::arg("pp"), py::arg("iterations"), py::arg("inlier_threshold"),
           py::arg("distance_threshold"));
 
+//    m.def("solver_homo_case3", &poselib::solver_homo_case3, py::arg("H12"), py::arg("H13"));
+
     m.def("RansacOptions", &poselib::RansacOptions_wrapper, py::arg("opt") = py::dict(), "Options for RANSAC.");
     m.def("BundleOptions", &poselib::BundleOptions_wrapper, py::arg("opt") = py::dict(),
           "Options for non-linear refinement.");
