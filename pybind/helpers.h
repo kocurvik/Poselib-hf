@@ -47,6 +47,10 @@ void update_ransac_options(const py::dict &input, RansacOptions &ransac_opt) {
     update(input, "threeview_check", ransac_opt.threeview_check);
     update(input, "problem", ransac_opt.problem);
     update(input, "use_onefocal", ransac_opt.use_onefocal);
+    update(input, "f1_gt", ransac_opt.f1_gt);
+    update(input, "f2_gt", ransac_opt.f2_gt);
+    update(input, "f3_gt", ransac_opt.f3_gt);
+    update(input, "f_oracle_threshold", ransac_opt.f_oracle_threshold);
 }
 
 void update_bundle_options(const py::dict &input, BundleOptions &bundle_opt) {
@@ -93,6 +97,10 @@ void write_to_dict(const RansacOptions &ransac_opt, py::dict &dict) {
     dict["use_degensac"] = ransac_opt.use_degensac;
     dict["use_onefocal"] = ransac_opt.use_onefocal;
     dict["problem"] = ransac_opt.problem;
+    dict["f1_gt"] = ransac_opt.f1_gt;
+    dict["f2_gt"] = ransac_opt.f2_gt;
+    dict["f3_gt"] = ransac_opt.f3_gt;
+    dict["f_oracle_threshold"] = ransac_opt.f_oracle_threshold;
 }
 
 void write_to_dict(const BundleOptions &bundle_opt, py::dict &dict) {

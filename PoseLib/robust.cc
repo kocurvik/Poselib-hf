@@ -428,6 +428,9 @@ RansacStats estimate_3v_shared_focal_relative_pose(const std::vector<Point2D> &x
 
     RansacOptions ransac_opt_scaled = ransac_opt;
     ransac_opt_scaled.max_epipolar_error = ransac_opt.max_epipolar_error / scale;
+    ransac_opt_scaled.f1_gt = ransac_opt.f1_gt / scale;
+    ransac_opt_scaled.f2_gt = ransac_opt.f2_gt / scale;
+    ransac_opt_scaled.f3_gt = ransac_opt.f3_gt / scale;
 
     RansacStats stats =
         ransac_3v_focal_cases_relpose(x1_norm, x2_norm, x3_norm, ransac_opt_scaled, image_triplet, inliers);
@@ -511,6 +514,9 @@ RansacStats estimate_3v_case2_relative_pose(const std::vector<Point2D> &x1, cons
 
     RansacOptions ransac_opt_scaled = ransac_opt;
     ransac_opt_scaled.max_epipolar_error = ransac_opt.max_epipolar_error / scale;
+    ransac_opt_scaled.f1_gt = ransac_opt.f1_gt / scale;
+    ransac_opt_scaled.f2_gt = ransac_opt.f2_gt / scale;
+    ransac_opt_scaled.f3_gt = ransac_opt.f3_gt / scale;
 
     Camera scaled_camera3 = Camera("SIMPLE_PINHOLE", {camera3.focal()/ scale, 0.0, 0.0}, -1, -1);
 

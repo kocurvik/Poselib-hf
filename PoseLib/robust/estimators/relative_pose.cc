@@ -1167,6 +1167,13 @@ void ThreeViewCase3RelativePoseEstimator::estimate_relpose(std::vector<ImageTrip
 }
 
 double ThreeViewCase3RelativePoseEstimator::score_model(const ImageTriplet &image_triplet, size_t *inlier_count) const {
+    if (opt.f_oracle_threshold > 0.0){
+        if ((std::abs(image_triplet.camera1.focal() - opt.f1_gt) / opt.f1_gt) > opt.f_oracle_threshold){
+            *inlier_count = 0;
+            return std::numeric_limits<double>::max();
+        }
+    }
+
     Eigen::DiagonalMatrix<double, 3> K1_inv(1, 1, image_triplet.camera1.focal());
     Eigen::DiagonalMatrix<double, 3> K3_inv(1, 1, image_triplet.camera3.focal());
     Eigen::Matrix3d F12, F13, F23;
@@ -1381,6 +1388,18 @@ void ThreeViewCase4RelativePoseEstimator::estimate_relpose(std::vector<ImageTrip
 }
 
 double ThreeViewCase4RelativePoseEstimator::score_model(const ImageTriplet &image_triplet, size_t *inlier_count) const {
+    if (opt.f_oracle_threshold > 0.0){
+        if ((std::abs(image_triplet.camera1.focal() - opt.f1_gt) / opt.f1_gt) > opt.f_oracle_threshold){
+            *inlier_count = 0;
+            return std::numeric_limits<double>::max();
+        }
+
+        if ((std::abs(image_triplet.camera2.focal() - opt.f2_gt) / opt.f2_gt) > opt.f_oracle_threshold){
+            *inlier_count = 0;
+            return std::numeric_limits<double>::max();
+        }
+    }
+
     Eigen::DiagonalMatrix<double, 3> K1_inv(1, 1, image_triplet.camera1.focal());
     Eigen::DiagonalMatrix<double, 3> K2_inv(1, 1, image_triplet.camera2.focal());
     Eigen::DiagonalMatrix<double, 3> K3_inv(1, 1, image_triplet.camera3.focal());

@@ -59,6 +59,10 @@ struct RansacOptions {
     bool use_degensac = false;
     int problem = 1;
     bool use_onefocal = false;
+    double f1_gt = 1;
+    double f2_gt = 1;
+    double f3_gt = 1;
+    double f_oracle_threshold = 0.0;
 };
 
 struct RansacStats {
