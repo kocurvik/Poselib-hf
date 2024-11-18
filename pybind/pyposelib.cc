@@ -883,6 +883,104 @@ std::tuple<Camera, Camera, int> focals_from_fundamental_iterative_wrapper(const 
     return focals_from_fundamental_iterative(F, camera1, camera2, max_iters, weights);
 }
 
+std::vector<std::vector<ImageTriplet>> sample_threeview_focal_case3(const std::vector<Eigen::Vector2d> &x1,
+                                                                    const std::vector<Eigen::Vector2d> &x2,
+                                                                    const std::vector<Eigen::Vector2d> &x3,
+                                                                    const py::dict &ransac_opt_dict) {
+    std::vector<Point2D> x1_norm = x1;
+    std::vector<Point2D> x2_norm = x2;
+    std::vector<Point2D> x3_norm = x3;
+
+    double scale = 0.0;
+    for (size_t k = 0; k < x1.size(); ++k) {
+        scale += x1_norm[k].norm();
+        scale += x2_norm[k].norm();
+        scale += x3_norm[k].norm();
+    }
+    scale /= 3.0 * x1.size() / std::sqrt(2);
+
+    for (size_t i = 0; i < x1_norm.size(); i++) {
+        x1_norm[i] /= scale;
+        x2_norm[i] /= scale;
+        x3_norm[i] /= scale;
+    }
+
+    RansacOptions ransac_opt;
+    update_ransac_options(ransac_opt_dict, ransac_opt);
+
+    ThreeViewCase3RelativePoseEstimator estimator(ransac_opt, x1_norm, x2_norm, x3_norm);
+
+    std::vector<std::vector<ImageTriplet>> all_models;
+    for(size_t i = 0; i < ransac_opt.max_iterations; ++i){
+        std::vector<ImageTriplet> local_models;
+        estimator.generate_models(&local_models);
+        std::vector<ImageTriplet> scaled_local_models;
+        scaled_local_models.reserve(local_models.size());
+        for (ImageTriplet it : local_models){
+            it.camera1.params[0] *= scale;
+            it.camera2.params[0] *= scale;
+            it.camera3.params[0] *= scale;
+            scaled_local_models.emplace_back(it);
+        }
+        all_models.push_back(scaled_local_models);
+    }
+
+    return all_models;
+}
+std::vector<std::vector<ImageTriplet>> sample_threeview_focal_case4(const std::vector<Eigen::Vector2d> &x1,
+                                                                    const std::vector<Eigen::Vector2d> &x2,
+                                                                    const std::vector<Eigen::Vector2d> &x3,
+                                                                    const py::dict &camera3_dict,
+                                                                    const py::dict &ransac_opt_dict) {
+    Camera camera3 = camera_from_dict(camera3_dict);
+    std::vector<Point2D> x1_norm = x1;
+    std::vector<Point2D> x2_norm = x2;
+    std::vector<Point2D> x3_norm = x3;
+
+    Point2D pp3 = camera3.principal_point();
+
+    for (size_t i = 0; i < x1_norm.size(); i++) {
+        x3_norm[i] -= pp3;
+    }
+
+    double scale = 0.0;
+    for (size_t k = 0; k < x1.size(); ++k) {
+        scale += x1_norm[k].norm();
+        scale += x2_norm[k].norm();
+        scale += x3_norm[k].norm();
+    }
+    scale /= 3.0 * x1.size() / std::sqrt(2);
+
+    for (size_t i = 0; i < x1_norm.size(); i++) {
+        x1_norm[i] /= scale;
+        x2_norm[i] /= scale;
+        x3_norm[i] /= scale;
+    }
+
+    RansacOptions ransac_opt;
+    update_ransac_options(ransac_opt_dict, ransac_opt);
+
+    camera3.params[0] /= scale;
+
+    ThreeViewCase4RelativePoseEstimator estimator(ransac_opt, camera3, x1_norm, x2_norm, x3_norm);
+
+    std::vector<std::vector<ImageTriplet>> all_models;
+    for(size_t i = 0; i < ransac_opt.max_iterations; ++i){
+        std::vector<ImageTriplet> local_models;
+        estimator.generate_models(&local_models);
+        std::vector<ImageTriplet> scaled_local_models;
+        scaled_local_models.reserve(local_models.size());
+        for (ImageTriplet it : local_models){
+            it.camera1.params[0] *= scale;
+            it.camera2.params[0] *= scale;
+            it.camera3.params[0] *= scale;
+            scaled_local_models.emplace_back(it);
+        }
+        all_models.push_back(scaled_local_models);
+    }
+    return all_models;
+}
+
 } // namespace poselib
 
 PYBIND11_MODULE(poselib, m) {
@@ -1093,6 +1191,12 @@ PYBIND11_MODULE(poselib, m) {
     m.def("RansacOptions", &poselib::RansacOptions_wrapper, py::arg("opt") = py::dict(), "Options for RANSAC.");
     m.def("BundleOptions", &poselib::BundleOptions_wrapper, py::arg("opt") = py::dict(),
           "Options for non-linear refinement.");
+
+    m.def("sample_threeview_focal_case3", &poselib::sample_threeview_focal_case3, py::arg("x1"), py::arg("x2"),
+          py::arg("x3"), py::arg("ransac_opt") = py::dict());
+
+    m.def("sample_threeview_focal_case4", &poselib::sample_threeview_focal_case4, py::arg("x1"), py::arg("x2"),
+          py::arg("x3"), py::arg("camera3"), py::arg("ransac_opt") = py::dict());
 
     m.attr("__version__") = std::string(POSELIB_VERSION);
 }
