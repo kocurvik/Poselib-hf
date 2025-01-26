@@ -1182,6 +1182,10 @@ PYBIND11_MODULE(poselib, m) {
           py::arg("weights") = Eigen::Vector4d(5.0e-4, 1.0, 5.0e-4, 1.0));
 
     m.def("solver_H3f", &poselib::solver_homo3f, py::arg("H12"), py::arg("H13"));
+    m.def("solver_H3f_case2", &poselib::solver_homo_case2, py::arg("H12"), py::arg("H13"));
+    m.def("solver_H3f_case3", &poselib::solver_homo_case3, py::arg("H12"), py::arg("H13"));
+    m.def("solver_H3f_case4", &poselib::solver_homo_case4, py::arg("H12"), py::arg("H13"));
+
     m.def("focal_from_homography", &poselib::estimate_focal_homography, py::arg("x1_1"), py::arg("x2_1"),
           py::arg("x1_2"), py::arg("x3_2"), py::arg("pp"), py::arg("iterations"), py::arg("inlier_threshold"),
           py::arg("distance_threshold"));

@@ -29,12 +29,13 @@
 #ifndef POSELIB_JACOBIAN_IMPL_H_
 #define POSELIB_JACOBIAN_IMPL_H_
 
-#include <iostream>
 #include "PoseLib/camera_pose.h"
 #include "PoseLib/misc/colmap_models.h"
 #include "PoseLib/misc/essential.h"
 #include "PoseLib/types.h"
 #include "utils.h"
+
+#include <iostream>
 
 namespace poselib {
 
@@ -573,8 +574,7 @@ class ThreeViewRelativePoseJacobianAccumulator {
   public:
     ThreeViewRelativePoseJacobianAccumulator(const std::vector<Point2D> &points2D_1,
                                              const std::vector<Point2D> &points2D_2,
-                                             const std::vector<Point2D> &points2D_3,
-                                             const LossFunction &l,
+                                             const std::vector<Point2D> &points2D_3, const LossFunction &l,
                                              const ResidualWeightVector &w = ResidualWeightVector())
         : x1(points2D_1), x2(points2D_2), x3(points2D_3), loss_fn(l), weights(w) {}
 
@@ -586,26 +586,26 @@ class ThreeViewRelativePoseJacobianAccumulator {
 
         double cost = 0.0;
         for (size_t k = 0; k < x1.size(); ++k) {
-            // E12          
+            // E12
             double C12 = x2[k].homogeneous().dot(E12 * x1[k].homogeneous());
             double nJc12_sq = (E12.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
-                            (E12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous()).squaredNorm();
+                              (E12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous()).squaredNorm();
             double r12_sq = (C12 * C12) / nJc12_sq;
             double loss12 = loss_fn.loss(r12_sq);
             if (loss12 == 0.0)
                 continue;
 
-            // E13            
+            // E13
             double C13 = x3[k].homogeneous().dot(E13 * x1[k].homogeneous());
             double nJc13_sq = (E13.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
                               (E13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
-            
+
             double r13_sq = (C13 * C13) / nJc13_sq;
             double loss13 = loss_fn.loss(r13_sq);
             if (loss13 == 0.0)
                 continue;
-            
-            // E23            
+
+            // E23
             double C23 = x3[k].homogeneous().dot(E23 * x2[k].homogeneous());
             double nJc23_sq = (E23.block<2, 3>(0, 0) * x2[k].homogeneous()).squaredNorm() +
                               (E23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
@@ -629,9 +629,9 @@ class ThreeViewRelativePoseJacobianAccumulator {
         // We start by setting up a basis for the updates in the translation (orthogonal to t)
         // We find the minimum element of t and cross product with the corresponding basis vector.
         // (this ensures that the first cross product is not close to the zero vector)
-        
+
         CameraPose pose12 = three_view_pose.pose12;
-        
+
         if (std::abs(pose12.t.x()) < std::abs(pose12.t.y())) {
             // x < y
             if (std::abs(pose12.t.x()) < std::abs(pose12.t.z())) {
@@ -653,14 +653,14 @@ class ThreeViewRelativePoseJacobianAccumulator {
 
         R12 = pose12.R();
         essential_from_motion(pose12, &E12);
-        
+
         R13 = three_view_pose.pose13.R();
         essential_from_motion(three_view_pose.pose13, &E13);
 
         CameraPose pose23 = three_view_pose.pose23();
         R23 = pose23.R();
         essential_from_motion(pose23, &E23);
-                
+
         // Matrices contain the jacobians of E12 w.r.t. the rotation and translation parameters
         Eigen::Matrix<double, 9, 3> dE12dr12;
         Eigen::Matrix<double, 9, 2> dE12dt12;
@@ -683,11 +683,11 @@ class ThreeViewRelativePoseJacobianAccumulator {
         dE12dt12.block<3, 1>(3, 1) = tangent_basis.col(1).cross(R12.col(1));
         dE12dt12.block<3, 1>(6, 0) = tangent_basis.col(0).cross(R12.col(2));
         dE12dt12.block<3, 1>(6, 1) = tangent_basis.col(1).cross(R12.col(2));
-        
+
         // Matrices contain the jacobians of E12 w.r.t. the rotation and translation parameters
         Eigen::Matrix<double, 9, 3> dE13dr13;
         Eigen::Matrix<double, 9, 3> dE13dt13;
-        
+
         // Each column is vec(E13*skew(e_k)) where e_k is k:th basis vector
         dE13dr13.block<3, 1>(0, 0).setZero();
         dE13dr13.block<3, 1>(0, 1) = -E13.col(2);
@@ -707,9 +707,9 @@ class ThreeViewRelativePoseJacobianAccumulator {
 
         dE13dt13_1.row(0) = R13.row(2);
         dE13dt13_1.row(1).setZero();
-        dE13dt13_1.row(2) = - R13.row(0);
+        dE13dt13_1.row(2) = -R13.row(0);
 
-        dE13dt13_2.row(0) = - R13.row(1);
+        dE13dt13_2.row(0) = -R13.row(1);
         dE13dt13_2.row(1) = R13.row(0);
         dE13dt13_2.row(2).setZero();
 
@@ -717,7 +717,7 @@ class ThreeViewRelativePoseJacobianAccumulator {
         dE13dt13.col(1) = Eigen::Map<Eigen::VectorXd>(dE13dt13_1.data(), dE13dt13_1.size());
         dE13dt13.col(2) = Eigen::Map<Eigen::VectorXd>(dE13dt13_2.data(), dE13dt13_2.size());
 
-        //TODO: this part calculates dE23dX and is not optimized yet
+        // TODO: this part calculates dE23dX and is not optimized yet
 
         // define skew(e_k)
         Eigen::Matrix3d b_0 = skew(Eigen::Vector3d::UnitX());
@@ -730,14 +730,14 @@ class ThreeViewRelativePoseJacobianAccumulator {
         dE23dr12_2 = skew(R13 * b_2 * R12.transpose() * pose12.t) * R23 - skew(pose23.t) * R13 * b_2 * R12.transpose();
 
         Eigen::Matrix3d dE23dr13_0, dE23dr13_1, dE23dr13_2;
-        dE23dr13_0 = - dE23dr12_0;
-        dE23dr13_1 = - dE23dr12_1;
-        dE23dr13_2 = - dE23dr12_2;
+        dE23dr13_0 = -dE23dr12_0;
+        dE23dr13_1 = -dE23dr12_1;
+        dE23dr13_2 = -dE23dr12_2;
 
         // dE23dt12 = skew(tangent_basis_k) * R23
         Eigen::Matrix3d dE23dt12_0, dE23dt12_1;
-        dE23dt12_0 = - skew(R23 * tangent_basis.col(0)) * R23;
-        dE23dt12_1 = - skew(R23 * tangent_basis.col(1)) * R23;
+        dE23dt12_0 = -skew(R23 * tangent_basis.col(0)) * R23;
+        dE23dt12_1 = -skew(R23 * tangent_basis.col(1)) * R23;
 
         // dE23dt13 = skew(e_k) * R23
         Eigen::Matrix3d dE23dt13_0, dE23dt13_1, dE23dt13_2;
@@ -747,9 +747,9 @@ class ThreeViewRelativePoseJacobianAccumulator {
 
         dE23dt13_1.row(0) = R23.row(2);
         dE23dt13_1.row(1).setZero();
-        dE23dt13_1.row(2) = - R23.row(0);
+        dE23dt13_1.row(2) = -R23.row(0);
 
-        dE23dt13_2.row(0) = - R23.row(1);
+        dE23dt13_2.row(0) = -R23.row(1);
         dE23dt13_2.row(1) = R23.row(0);
         dE23dt13_2.row(2).setZero();
 
@@ -773,7 +773,6 @@ class ThreeViewRelativePoseJacobianAccumulator {
         dE23dt13.col(1) = Eigen::Map<Eigen::VectorXd>(dE23dt13_1.data(), dE23dt13_1.size());
         dE23dt13.col(2) = Eigen::Map<Eigen::VectorXd>(dE23dt13_2.data(), dE23dt13_2.size());
 
-
         size_t num_residuals = 0;
         for (size_t k = 0; k < x1.size(); ++k) {
             double C12 = x2[k].homogeneous().dot(E12 * x1[k].homogeneous());
@@ -782,7 +781,8 @@ class ThreeViewRelativePoseJacobianAccumulator {
 
             // J_C12 is the Jacobian of the epipolar constraint w.r12.t. the image points
             Eigen::Vector4d J_C12;
-            J_C12 << E12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous(), E12.block<2, 3>(0, 0) * x1[k].homogeneous();
+            J_C12 << E12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous(),
+                E12.block<2, 3>(0, 0) * x1[k].homogeneous();
             const double nJ_C12 = J_C12.norm();
             const double inv_nJ_C12 = 1.0 / nJ_C12;
             const double r12 = C12 * inv_nJ_C12;
@@ -790,9 +790,10 @@ class ThreeViewRelativePoseJacobianAccumulator {
             if (weight12 == 0.0) {
                 continue;
             }
-                        
+
             Eigen::Vector4d J_C13;
-            J_C13 << E13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(), E13.block<2, 3>(0, 0) * x1[k].homogeneous();
+            J_C13 << E13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(),
+                E13.block<2, 3>(0, 0) * x1[k].homogeneous();
             const double nJ_C13 = J_C13.norm();
             const double inv_nJ_C13 = 1.0 / nJ_C13;
             const double r13 = C13 * inv_nJ_C13;
@@ -801,9 +802,10 @@ class ThreeViewRelativePoseJacobianAccumulator {
             if (weight13 == 0.0) {
                 continue;
             }
-            
+
             Eigen::Vector4d J_C23;
-            J_C23 << E23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(), E23.block<2, 3>(0, 0) * x2[k].homogeneous();
+            J_C23 << E23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(),
+                E23.block<2, 3>(0, 0) * x2[k].homogeneous();
             const double nJ_C23 = J_C23.norm();
             const double inv_nJ_C23 = 1.0 / nJ_C23;
             const double r23 = C23 * inv_nJ_C23;
@@ -812,7 +814,7 @@ class ThreeViewRelativePoseJacobianAccumulator {
             if (weight23 == 0.0) {
                 continue;
             }
-                        
+
             num_residuals += 3;
 
             // Compute Jacobian of Sampson error w.r12.t the fundamental/essential matrix (3x3)
@@ -843,7 +845,7 @@ class ThreeViewRelativePoseJacobianAccumulator {
             dSdE13(6) -= s13 * (J_C13(2));
             dSdE13(7) -= s13 * (J_C13(3));
             dSdE13 *= inv_nJ_C13;
-            
+
             Eigen::Matrix<double, 1, 9> dSdE23;
             dSdE23 << x2[k](0) * x3[k](0), x2[k](0) * x3[k](1), x2[k](0), x2[k](1) * x3[k](0), x2[k](1) * x3[k](1),
                 x2[k](1), x3[k](0), x3[k](1), 1.0;
@@ -857,7 +859,7 @@ class ThreeViewRelativePoseJacobianAccumulator {
             dSdE23(6) -= s23 * (J_C23(2));
             dSdE23(7) -= s23 * (J_C23(3));
             dSdE23 *= inv_nJ_C23;
-            
+
             // and then w.r.t. the pose parameters (rotation + tangent basis for translation)
             Eigen::Matrix<double, 1, 11> J12;
             J12.block<1, 3>(0, 0) = dSdE12 * dE12dr12;
@@ -874,7 +876,6 @@ class ThreeViewRelativePoseJacobianAccumulator {
             J23.block<1, 2>(0, 3) = dSdE23 * dE23dt12;
             J23.block<1, 3>(0, 5) = dSdE23 * dE23dr13;
             J23.block<1, 3>(0, 8) = dSdE23 * dE23dt13;
-
 
             // Accumulate into Jtr
             Jtr += weight12 * C12 * inv_nJ_C12 * J12.transpose();
@@ -921,8 +922,7 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
   public:
     ThreeViewSharedFocalRelativePoseJacobianAccumulator(const std::vector<Point2D> &points2D_1,
                                                         const std::vector<Point2D> &points2D_2,
-                                                        const std::vector<Point2D> &points2D_3,
-                                                        const LossFunction &l,
+                                                        const std::vector<Point2D> &points2D_3, const LossFunction &l,
                                                         const ResidualWeightVector &w = ResidualWeightVector())
         : x1(points2D_1), x2(points2D_2), x3(points2D_3), loss_fn(l), weights(w) {}
 
@@ -951,12 +951,12 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
             double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
             double nJc13_sq = (F13.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
                               (F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
-            
+
             double r13_sq = (C13 * C13) / nJc13_sq;
             double loss13 = loss_fn.loss(r13_sq);
             if (loss13 == 0.0)
                 continue;
-            
+
             // F23
             double C23 = x3[k].homogeneous().dot(F23 * x2[k].homogeneous());
             double nJc23_sq = (F23.block<2, 3>(0, 0) * x2[k].homogeneous()).squaredNorm() +
@@ -986,38 +986,38 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
         F23 = K_inv * F23 * K_inv;
 
         double cost = 0.0;
-            // F12
-            double C12 = x2[k].homogeneous().dot(F12 * x1[k].homogeneous());
-            double nJc12_sq = (F12.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
-                              (F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous()).squaredNorm();
-            double r12_sq = (C12 * C12) / nJc12_sq;
-            double loss12 = loss_fn.loss(r12_sq);
-            if (loss12 == 0.0)
-                return 0.0;
+        // F12
+        double C12 = x2[k].homogeneous().dot(F12 * x1[k].homogeneous());
+        double nJc12_sq = (F12.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                          (F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous()).squaredNorm();
+        double r12_sq = (C12 * C12) / nJc12_sq;
+        double loss12 = loss_fn.loss(r12_sq);
+        if (loss12 == 0.0)
+            return 0.0;
 
-            // F13
-            double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
-            double nJc13_sq = (F13.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
-                              (F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
+        // F13
+        double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
+        double nJc13_sq = (F13.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                          (F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
 
-            double r13_sq = (C13 * C13) / nJc13_sq;
-            double loss13 = loss_fn.loss(r13_sq);
-            if (loss13 == 0.0)
-                return 0.0;
+        double r13_sq = (C13 * C13) / nJc13_sq;
+        double loss13 = loss_fn.loss(r13_sq);
+        if (loss13 == 0.0)
+            return 0.0;
 
-            // F23
-            double C23 = x3[k].homogeneous().dot(F23 * x2[k].homogeneous());
-            double nJc23_sq = (F23.block<2, 3>(0, 0) * x2[k].homogeneous()).squaredNorm() +
-                              (F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
+        // F23
+        double C23 = x3[k].homogeneous().dot(F23 * x2[k].homogeneous());
+        double nJc23_sq = (F23.block<2, 3>(0, 0) * x2[k].homogeneous()).squaredNorm() +
+                          (F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
 
-            double r23_sq = (C23 * C23) / nJc23_sq;
-            double loss23 = loss_fn.loss(r23_sq);
-            if (loss23 == 0.0)
-                return 0.0;
+        double r23_sq = (C23 * C23) / nJc23_sq;
+        double loss23 = loss_fn.loss(r23_sq);
+        if (loss23 == 0.0)
+            return 0.0;
 
-            cost += weights[k] * loss12;
-            cost += weights[k] * loss13;
-            cost += weights[k] * loss23;
+        cost += weights[k] * loss12;
+        cost += weights[k] * loss13;
+        cost += weights[k] * loss23;
 
         return cost;
     }
@@ -1028,9 +1028,9 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
         // We start by setting up a basis for the updates in the translation (orthogonal to t)
         // We find the minimum element of t and cross product with the corresponding basis vector.
         // (this ensures that the first cross product is not close to the zero vector)
-        
+
         CameraPose pose12 = image_triplet.poses.pose12;
-        
+
         if (std::abs(pose12.t.x()) < std::abs(pose12.t.y())) {
             // x < y
             if (std::abs(pose12.t.x()) < std::abs(pose12.t.z())) {
@@ -1052,7 +1052,7 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
 
         R12 = pose12.R();
         essential_from_motion(pose12, &E12);
-        
+
         R13 = image_triplet.poses.pose13.R();
         essential_from_motion(image_triplet.poses.pose13, &E13);
 
@@ -1097,11 +1097,11 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
         dE12dt12.block<3, 1>(3, 1) = tangent_basis.col(1).cross(R12.col(1));
         dE12dt12.block<3, 1>(6, 0) = tangent_basis.col(0).cross(R12.col(2));
         dE12dt12.block<3, 1>(6, 1) = tangent_basis.col(1).cross(R12.col(2));
-        
+
         // Matrices contain the jacobians of E12 w.r.t. the rotation and translation parameters
         Eigen::Matrix<double, 9, 3> dE13dr13;
         Eigen::Matrix<double, 9, 3> dE13dt13;
-        
+
         // Each column is vec(E13*skew(e_k)) where e_k is k:th basis vector
         dE13dr13.block<3, 1>(0, 0).setZero();
         dE13dr13.block<3, 1>(0, 1) = -E13.col(2);
@@ -1121,9 +1121,9 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
 
         dE13dt13_1.row(0) = R13.row(2);
         dE13dt13_1.row(1).setZero();
-        dE13dt13_1.row(2) = - R13.row(0);
+        dE13dt13_1.row(2) = -R13.row(0);
 
-        dE13dt13_2.row(0) = - R13.row(1);
+        dE13dt13_2.row(0) = -R13.row(1);
         dE13dt13_2.row(1) = R13.row(0);
         dE13dt13_2.row(2).setZero();
 
@@ -1131,7 +1131,7 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
         dE13dt13.col(1) = Eigen::Map<Eigen::VectorXd>(dE13dt13_1.data(), dE13dt13_1.size());
         dE13dt13.col(2) = Eigen::Map<Eigen::VectorXd>(dE13dt13_2.data(), dE13dt13_2.size());
 
-        //TODO: this part calculates dE23dX and is not optimized yet
+        // TODO: this part calculates dE23dX and is not optimized yet
 
         // define skew(e_k)
         Eigen::Matrix3d b_0 = skew(Eigen::Vector3d::UnitX());
@@ -1144,14 +1144,14 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
         dE23dr12_2 = skew(R13 * b_2 * R12.transpose() * pose12.t) * R23 - skew(pose23.t) * R13 * b_2 * R12.transpose();
 
         Eigen::Matrix3d dE23dr13_0, dE23dr13_1, dE23dr13_2;
-        dE23dr13_0 = - dE23dr12_0;
-        dE23dr13_1 = - dE23dr12_1;
-        dE23dr13_2 = - dE23dr12_2;
+        dE23dr13_0 = -dE23dr12_0;
+        dE23dr13_1 = -dE23dr12_1;
+        dE23dr13_2 = -dE23dr12_2;
 
         // dE23dt12 = skew(tangent_basis_k) * R23
         Eigen::Matrix3d dE23dt12_0, dE23dt12_1;
-        dE23dt12_0 = - skew(R23 * tangent_basis.col(0)) * R23;
-        dE23dt12_1 = - skew(R23 * tangent_basis.col(1)) * R23;
+        dE23dt12_0 = -skew(R23 * tangent_basis.col(0)) * R23;
+        dE23dt12_1 = -skew(R23 * tangent_basis.col(1)) * R23;
 
         // dE23dt13 = skew(e_k) * R23
         Eigen::Matrix3d dE23dt13_0, dE23dt13_1, dE23dt13_2;
@@ -1161,9 +1161,9 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
 
         dE23dt13_1.row(0) = R23.row(2);
         dE23dt13_1.row(1).setZero();
-        dE23dt13_1.row(2) = - R23.row(0);
+        dE23dt13_1.row(2) = -R23.row(0);
 
-        dE23dt13_2.row(0) = - R23.row(1);
+        dE23dt13_2.row(0) = -R23.row(1);
         dE23dt13_2.row(1) = R23.row(0);
         dE23dt13_2.row(2).setZero();
 
@@ -1187,7 +1187,6 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
         dE23dt13.col(1) = Eigen::Map<Eigen::VectorXd>(dE23dt13_1.data(), dE23dt13_1.size());
         dE23dt13.col(2) = Eigen::Map<Eigen::VectorXd>(dE23dt13_2.data(), dE23dt13_2.size());
 
-
         size_t num_residuals = 0;
         for (size_t k = 0; k < x1.size(); ++k) {
             double C12 = x2[k].homogeneous().dot(F12 * x1[k].homogeneous());
@@ -1196,7 +1195,8 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
 
             // J_C12 is the Jacobian of the epipolar constraint w.r12.t. the image points
             Eigen::Vector4d J_C12;
-            J_C12 << F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous(), F12.block<2, 3>(0, 0) * x1[k].homogeneous();
+            J_C12 << F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous(),
+                F12.block<2, 3>(0, 0) * x1[k].homogeneous();
             const double nJ_C12 = J_C12.norm();
             const double inv_nJ_C12 = 1.0 / nJ_C12;
             const double r12 = C12 * inv_nJ_C12;
@@ -1204,9 +1204,10 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
             if (weight12 == 0.0) {
                 continue;
             }
-                        
+
             Eigen::Vector4d J_C13;
-            J_C13 << F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(), F13.block<2, 3>(0, 0) * x1[k].homogeneous();
+            J_C13 << F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(),
+                F13.block<2, 3>(0, 0) * x1[k].homogeneous();
             const double nJ_C13 = J_C13.norm();
             const double inv_nJ_C13 = 1.0 / nJ_C13;
             const double r13 = C13 * inv_nJ_C13;
@@ -1215,9 +1216,10 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
             if (weight13 == 0.0) {
                 continue;
             }
-            
+
             Eigen::Vector4d J_C23;
-            J_C23 << F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(), F23.block<2, 3>(0, 0) * x2[k].homogeneous();
+            J_C23 << F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(),
+                F23.block<2, 3>(0, 0) * x2[k].homogeneous();
             const double nJ_C23 = J_C23.norm();
             const double inv_nJ_C23 = 1.0 / nJ_C23;
             const double r23 = C23 * inv_nJ_C23;
@@ -1226,7 +1228,7 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
             if (weight23 == 0.0) {
                 continue;
             }
-                        
+
             num_residuals += 3;
 
             // Compute Jacobian of Sampson error w.r12.t the fundamental/essential matrix (3x3)
@@ -1257,7 +1259,7 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
             dSdF13(6) -= s13 * (J_C13(2));
             dSdF13(7) -= s13 * (J_C13(3));
             dSdF13 *= inv_nJ_C13;
-            
+
             Eigen::Matrix<double, 1, 9> dSdF23;
             dSdF23 << x2[k](0) * x3[k](0), x2[k](0) * x3[k](1), x2[k](0), x2[k](1) * x3[k](0), x2[k](1) * x3[k](1),
                 x2[k](1), x3[k](0), x3[k](1), 1.0;
@@ -1271,7 +1273,7 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
             dSdF23(6) -= s23 * (J_C23(2));
             dSdF23(7) -= s23 * (J_C23(3));
             dSdF23 *= inv_nJ_C23;
-            
+
             // and then w.r.t. the pose parameters (rotation + tangent basis for translation)
             Eigen::Matrix<double, 1, 12> J12;
             J12.block<1, 3>(0, 0) = dSdF12.cwiseProduct(dFdE) * dE12dr12;
@@ -1292,20 +1294,22 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
             J23.block<1, 3>(0, 8) = dSdF23.cwiseProduct(dFdE) * dE23dt13;
             J23(0, 11) = dSdF23 * dF23df;
 
-//            Eigen::Matrix<double, 1, 12> num_J;
-//            Eigen::Matrix<double, 12, 1> dp;
-//            double eps = 1.0e-8;
-//            for (int j = 0; j < 12; ++j){
-//                dp.setZero();
-//                dp(j, 0) = eps;
-//                ImageTriplet fwd_image_triplet = step(dp, image_triplet);
-//                ImageTriplet bcw_image_triplet = step(-dp, image_triplet);
-//                dp.setZero();
-//                num_J(0, j) = (residual(fwd_image_triplet, k) - residual(bcw_image_triplet, k)) / (2 * eps);
-//            }
-//
-//            std::cout << "Sym J: " << 2 * (weight12 * C12 * inv_nJ_C12 * J12 + weight13 * C13 * inv_nJ_C13 * J13 + weight23 * C23 * inv_nJ_C23 * J23) << std::endl;
-//            std::cout << "Num J: " << num_J << std::endl;
+            //            Eigen::Matrix<double, 1, 12> num_J;
+            //            Eigen::Matrix<double, 12, 1> dp;
+            //            double eps = 1.0e-8;
+            //            for (int j = 0; j < 12; ++j){
+            //                dp.setZero();
+            //                dp(j, 0) = eps;
+            //                ImageTriplet fwd_image_triplet = step(dp, image_triplet);
+            //                ImageTriplet bcw_image_triplet = step(-dp, image_triplet);
+            //                dp.setZero();
+            //                num_J(0, j) = (residual(fwd_image_triplet, k) - residual(bcw_image_triplet, k)) / (2 *
+            //                eps);
+            //            }
+            //
+            //            std::cout << "Sym J: " << 2 * (weight12 * C12 * inv_nJ_C12 * J12 + weight13 * C13 * inv_nJ_C13
+            //            * J13 + weight23 * C23 * inv_nJ_C23 * J23) << std::endl; std::cout << "Num J: " << num_J <<
+            //            std::endl;
 
             // Accumulate into Jtr
             Jtr += weight12 * C12 * inv_nJ_C12 * J12.transpose();
@@ -1332,7 +1336,8 @@ class ThreeViewSharedFocalRelativePoseJacobianAccumulator {
         pose13_new.q = quat_step_post(image_triplet.poses.pose13.q, dp.block<3, 1>(5, 0));
         pose13_new.t = image_triplet.poses.pose13.t + dp.block<3, 1>(8, 0);
 
-        Camera camera_new = Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera1.focal()+ dp(11,0), 0.0, 0.0}, -1, -1);
+        Camera camera_new =
+            Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera1.focal() + dp(11, 0), 0.0, 0.0}, -1, -1);
 
         ImageTriplet image_triplet_new(ThreeViewCameraPose(pose12_new, pose13_new), camera_new);
         return image_triplet_new;
@@ -1353,10 +1358,9 @@ template <typename LossFunction, typename ResidualWeightVector = UniformWeightVe
 class ThreeViewCase2RelativePoseJacobianAccumulator {
   public:
     ThreeViewCase2RelativePoseJacobianAccumulator(const std::vector<Point2D> &points2D_1,
-                                                        const std::vector<Point2D> &points2D_2,
-                                                        const std::vector<Point2D> &points2D_3,
-                                                        const LossFunction &l,
-                                                        const ResidualWeightVector &w = ResidualWeightVector())
+                                                  const std::vector<Point2D> &points2D_2,
+                                                  const std::vector<Point2D> &points2D_3, const LossFunction &l,
+                                                  const ResidualWeightVector &w = ResidualWeightVector())
         : x1(points2D_1), x2(points2D_2), x3(points2D_3), loss_fn(l), weights(w) {}
 
     double residual(const ImageTriplet &image_triplet) const {
@@ -1421,38 +1425,38 @@ class ThreeViewCase2RelativePoseJacobianAccumulator {
         F23 = K3_inv * E23 * K1_inv;
 
         double cost = 0.0;
-            // F12
-            double C12 = x2[k].homogeneous().dot(F12 * x1[k].homogeneous());
-            double nJc12_sq = (F12.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
-                              (F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous()).squaredNorm();
-            double r12_sq = (C12 * C12) / nJc12_sq;
-            double loss12 = loss_fn.loss(r12_sq);
-            if (loss12 == 0.0)
-                return 0.0;
+        // F12
+        double C12 = x2[k].homogeneous().dot(F12 * x1[k].homogeneous());
+        double nJc12_sq = (F12.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                          (F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous()).squaredNorm();
+        double r12_sq = (C12 * C12) / nJc12_sq;
+        double loss12 = loss_fn.loss(r12_sq);
+        if (loss12 == 0.0)
+            return 0.0;
 
-            // F13
-            double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
-            double nJc13_sq = (F13.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
-                              (F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
+        // F13
+        double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
+        double nJc13_sq = (F13.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                          (F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
 
-            double r13_sq = (C13 * C13) / nJc13_sq;
-            double loss13 = loss_fn.loss(r13_sq);
-            if (loss13 == 0.0)
-                return 0.0;
+        double r13_sq = (C13 * C13) / nJc13_sq;
+        double loss13 = loss_fn.loss(r13_sq);
+        if (loss13 == 0.0)
+            return 0.0;
 
-            // F23
-            double C23 = x3[k].homogeneous().dot(F23 * x2[k].homogeneous());
-            double nJc23_sq = (F23.block<2, 3>(0, 0) * x2[k].homogeneous()).squaredNorm() +
-                              (F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
+        // F23
+        double C23 = x3[k].homogeneous().dot(F23 * x2[k].homogeneous());
+        double nJc23_sq = (F23.block<2, 3>(0, 0) * x2[k].homogeneous()).squaredNorm() +
+                          (F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
 
-            double r23_sq = (C23 * C23) / nJc23_sq;
-            double loss23 = loss_fn.loss(r23_sq);
-            if (loss23 == 0.0)
-                return 0.0;
+        double r23_sq = (C23 * C23) / nJc23_sq;
+        double loss23 = loss_fn.loss(r23_sq);
+        if (loss23 == 0.0)
+            return 0.0;
 
-            cost += weights[k] * loss12;
-            cost += weights[k] * loss13;
-            cost += weights[k] * loss23;
+        cost += weights[k] * loss12;
+        cost += weights[k] * loss13;
+        cost += weights[k] * loss23;
 
         return cost;
     }
@@ -1504,15 +1508,15 @@ class ThreeViewCase2RelativePoseJacobianAccumulator {
         F13 = K3_inv * E13 * K1_inv;
         F23 = K3_inv * E23 * K1_inv;
 
-//        Eigen::Matrix<double, 9, 1> dF12df1, dF13df1, dF13df3, dF23df1, dF23df3;
+        //        Eigen::Matrix<double, 9, 1> dF12df1, dF13df1, dF13df3, dF23df1, dF23df3;
         Eigen::Matrix<double, 9, 1> dF12df1, dF13df1, dF23df1;
         dF12df1 << 0.0, 0.0, E12(2, 0), 0.0, 0.0, E12(2, 1), E12(0, 2), E12(1, 2), 2 * E12(2, 2) * f1;
 
         dF13df1 << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, E13(0, 2), E13(1, 2), E13(2, 2) * f3;
-//        dF13df3 << 0.0, 0.0, E13(2, 0), 0.0, 0.0, E13(2, 1), 0.0, 0.0, E13(2, 2) * f1;
+        //        dF13df3 << 0.0, 0.0, E13(2, 0), 0.0, 0.0, E13(2, 1), 0.0, 0.0, E13(2, 2) * f1;
 
         dF23df1 << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, E23(0, 2), E23(1, 2), E23(2, 2) * f3;
-//        dF23df3 << 0.0, 0.0, E23(2, 0), 0.0, 0.0, E23(2, 1), 0.0, 0.0, E23(2, 2) * f1;
+        //        dF23df3 << 0.0, 0.0, E23(2, 0), 0.0, 0.0, E23(2, 1), 0.0, 0.0, E23(2, 2) * f1;
 
         Eigen::Matrix<double, 1, 9> dF12dE12, dF13dE13, dF23dE23;
         dF12dE12 << 1.0, 1.0, f1, 1.0, 1.0, f1, f1, f1, f1 * f1;
@@ -1565,9 +1569,9 @@ class ThreeViewCase2RelativePoseJacobianAccumulator {
 
         dE13dt13_1.row(0) = R13.row(2);
         dE13dt13_1.row(1).setZero();
-        dE13dt13_1.row(2) = - R13.row(0);
+        dE13dt13_1.row(2) = -R13.row(0);
 
-        dE13dt13_2.row(0) = - R13.row(1);
+        dE13dt13_2.row(0) = -R13.row(1);
         dE13dt13_2.row(1) = R13.row(0);
         dE13dt13_2.row(2).setZero();
 
@@ -1575,7 +1579,7 @@ class ThreeViewCase2RelativePoseJacobianAccumulator {
         dE13dt13.col(1) = Eigen::Map<Eigen::VectorXd>(dE13dt13_1.data(), dE13dt13_1.size());
         dE13dt13.col(2) = Eigen::Map<Eigen::VectorXd>(dE13dt13_2.data(), dE13dt13_2.size());
 
-        //TODO: this part calculates dE23dX and is not optimized yet
+        // TODO: this part calculates dE23dX and is not optimized yet
 
         // define skew(e_k)
         Eigen::Matrix3d b_0 = skew(Eigen::Vector3d::UnitX());
@@ -1588,14 +1592,14 @@ class ThreeViewCase2RelativePoseJacobianAccumulator {
         dE23dr12_2 = skew(R13 * b_2 * R12.transpose() * pose12.t) * R23 - skew(pose23.t) * R13 * b_2 * R12.transpose();
 
         Eigen::Matrix3d dE23dr13_0, dE23dr13_1, dE23dr13_2;
-        dE23dr13_0 = - dE23dr12_0;
-        dE23dr13_1 = - dE23dr12_1;
-        dE23dr13_2 = - dE23dr12_2;
+        dE23dr13_0 = -dE23dr12_0;
+        dE23dr13_1 = -dE23dr12_1;
+        dE23dr13_2 = -dE23dr12_2;
 
         // dE23dt12 = skew(tangent_basis_k) * R23
         Eigen::Matrix3d dE23dt12_0, dE23dt12_1;
-        dE23dt12_0 = - skew(R23 * tangent_basis.col(0)) * R23;
-        dE23dt12_1 = - skew(R23 * tangent_basis.col(1)) * R23;
+        dE23dt12_0 = -skew(R23 * tangent_basis.col(0)) * R23;
+        dE23dt12_1 = -skew(R23 * tangent_basis.col(1)) * R23;
 
         // dE23dt13 = skew(e_k) * R23
         Eigen::Matrix3d dE23dt13_0, dE23dt13_1, dE23dt13_2;
@@ -1605,9 +1609,9 @@ class ThreeViewCase2RelativePoseJacobianAccumulator {
 
         dE23dt13_1.row(0) = R23.row(2);
         dE23dt13_1.row(1).setZero();
-        dE23dt13_1.row(2) = - R23.row(0);
+        dE23dt13_1.row(2) = -R23.row(0);
 
-        dE23dt13_2.row(0) = - R23.row(1);
+        dE23dt13_2.row(0) = -R23.row(1);
         dE23dt13_2.row(1) = R23.row(0);
         dE23dt13_2.row(2).setZero();
 
@@ -1639,7 +1643,8 @@ class ThreeViewCase2RelativePoseJacobianAccumulator {
 
             // J_C12 is the Jacobian of the epipolar constraint w.r12.t. the image points
             Eigen::Vector4d J_C12;
-            J_C12 << F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous(), F12.block<2, 3>(0, 0) * x1[k].homogeneous();
+            J_C12 << F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous(),
+                F12.block<2, 3>(0, 0) * x1[k].homogeneous();
             const double nJ_C12 = J_C12.norm();
             const double inv_nJ_C12 = 1.0 / nJ_C12;
             const double r12 = C12 * inv_nJ_C12;
@@ -1649,7 +1654,8 @@ class ThreeViewCase2RelativePoseJacobianAccumulator {
             }
 
             Eigen::Vector4d J_C13;
-            J_C13 << F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(), F13.block<2, 3>(0, 0) * x1[k].homogeneous();
+            J_C13 << F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(),
+                F13.block<2, 3>(0, 0) * x1[k].homogeneous();
             const double nJ_C13 = J_C13.norm();
             const double inv_nJ_C13 = 1.0 / nJ_C13;
             const double r13 = C13 * inv_nJ_C13;
@@ -1660,7 +1666,8 @@ class ThreeViewCase2RelativePoseJacobianAccumulator {
             }
 
             Eigen::Vector4d J_C23;
-            J_C23 << F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(), F23.block<2, 3>(0, 0) * x2[k].homogeneous();
+            J_C23 << F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(),
+                F23.block<2, 3>(0, 0) * x2[k].homogeneous();
             const double nJ_C23 = J_C23.norm();
             const double inv_nJ_C23 = 1.0 / nJ_C23;
             const double r23 = C23 * inv_nJ_C23;
@@ -1735,20 +1742,22 @@ class ThreeViewCase2RelativePoseJacobianAccumulator {
             J23.block<1, 3>(0, 8) = dSdF23.cwiseProduct(dF23dE23) * dE23dt13;
             J23(0, 11) = dSdF23 * dF23df1;
 
-//            Eigen::Matrix<double, 1, 12> num_J;
-//            Eigen::Matrix<double, 12, 1> dp;
-//            double eps = 1.0e-8;
-//            for (int j = 0; j < 12; ++j){
-//                dp.setZero();
-//                dp(j, 0) = eps;
-//                ImageTriplet fwd_image_triplet = step(dp, image_triplet);
-//                ImageTriplet bcw_image_triplet = step(-dp, image_triplet);
-//                dp.setZero();
-//                num_J(0, j) = (residual(fwd_image_triplet, k) - residual(bcw_image_triplet, k)) / (2 * eps);
-//            }
-//
-//            std::cout << "Sym J: " << 2 * (weight12 * C12 * inv_nJ_C12 * J12 + weight13 * C13 * inv_nJ_C13 * J13 + weight23 * C23 * inv_nJ_C23 * J23) << std::endl;
-//            std::cout << "Num J: " << num_J << std::endl;
+            //            Eigen::Matrix<double, 1, 12> num_J;
+            //            Eigen::Matrix<double, 12, 1> dp;
+            //            double eps = 1.0e-8;
+            //            for (int j = 0; j < 12; ++j){
+            //                dp.setZero();
+            //                dp(j, 0) = eps;
+            //                ImageTriplet fwd_image_triplet = step(dp, image_triplet);
+            //                ImageTriplet bcw_image_triplet = step(-dp, image_triplet);
+            //                dp.setZero();
+            //                num_J(0, j) = (residual(fwd_image_triplet, k) - residual(bcw_image_triplet, k)) / (2 *
+            //                eps);
+            //            }
+            //
+            //            std::cout << "Sym J: " << 2 * (weight12 * C12 * inv_nJ_C12 * J12 + weight13 * C13 * inv_nJ_C13
+            //            * J13 + weight23 * C23 * inv_nJ_C23 * J23) << std::endl; std::cout << "Num J: " << num_J <<
+            //            std::endl;
 
             // Accumulate into Jtr
             Jtr += weight12 * C12 * inv_nJ_C12 * J12.transpose();
@@ -1775,9 +1784,11 @@ class ThreeViewCase2RelativePoseJacobianAccumulator {
         pose13_new.q = quat_step_post(image_triplet.poses.pose13.q, dp.block<3, 1>(5, 0));
         pose13_new.t = image_triplet.poses.pose13.t + dp.block<3, 1>(8, 0);
 
-        Camera camera1_new = Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera1.focal()+ dp(11,0), 0.0, 0.0}, -1, -1);
+        Camera camera1_new =
+            Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera1.focal() + dp(11, 0), 0.0, 0.0}, -1, -1);
 
-        ImageTriplet image_triplet_new(ThreeViewCameraPose(pose12_new, pose13_new), camera1_new, camera1_new, image_triplet.camera3);
+        ImageTriplet image_triplet_new(ThreeViewCameraPose(pose12_new, pose13_new), camera1_new, camera1_new,
+                                       image_triplet.camera3);
         return image_triplet_new;
     }
     typedef ImageTriplet param_t;
@@ -1796,10 +1807,9 @@ template <typename LossFunction, typename ResidualWeightVector = UniformWeightVe
 class ThreeViewCase3RelativePoseJacobianAccumulator {
   public:
     ThreeViewCase3RelativePoseJacobianAccumulator(const std::vector<Point2D> &points2D_1,
-                                                        const std::vector<Point2D> &points2D_2,
-                                                        const std::vector<Point2D> &points2D_3,
-                                                        const LossFunction &l,
-                                                        const ResidualWeightVector &w = ResidualWeightVector())
+                                                  const std::vector<Point2D> &points2D_2,
+                                                  const std::vector<Point2D> &points2D_3, const LossFunction &l,
+                                                  const ResidualWeightVector &w = ResidualWeightVector())
         : x1(points2D_1), x2(points2D_2), x3(points2D_3), loss_fn(l), weights(w) {}
 
     double residual(const ImageTriplet &image_triplet) const {
@@ -1864,38 +1874,38 @@ class ThreeViewCase3RelativePoseJacobianAccumulator {
         F23 = K3_inv * E23 * K1_inv;
 
         double cost = 0.0;
-            // F12
-            double C12 = x2[k].homogeneous().dot(F12 * x1[k].homogeneous());
-            double nJc12_sq = (F12.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
-                              (F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous()).squaredNorm();
-            double r12_sq = (C12 * C12) / nJc12_sq;
-            double loss12 = loss_fn.loss(r12_sq);
-            if (loss12 == 0.0)
-                return 0.0;
+        // F12
+        double C12 = x2[k].homogeneous().dot(F12 * x1[k].homogeneous());
+        double nJc12_sq = (F12.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                          (F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous()).squaredNorm();
+        double r12_sq = (C12 * C12) / nJc12_sq;
+        double loss12 = loss_fn.loss(r12_sq);
+        if (loss12 == 0.0)
+            return 0.0;
 
-            // F13
-            double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
-            double nJc13_sq = (F13.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
-                              (F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
+        // F13
+        double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
+        double nJc13_sq = (F13.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                          (F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
 
-            double r13_sq = (C13 * C13) / nJc13_sq;
-            double loss13 = loss_fn.loss(r13_sq);
-            if (loss13 == 0.0)
-                return 0.0;
+        double r13_sq = (C13 * C13) / nJc13_sq;
+        double loss13 = loss_fn.loss(r13_sq);
+        if (loss13 == 0.0)
+            return 0.0;
 
-            // F23
-            double C23 = x3[k].homogeneous().dot(F23 * x2[k].homogeneous());
-            double nJc23_sq = (F23.block<2, 3>(0, 0) * x2[k].homogeneous()).squaredNorm() +
-                              (F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
+        // F23
+        double C23 = x3[k].homogeneous().dot(F23 * x2[k].homogeneous());
+        double nJc23_sq = (F23.block<2, 3>(0, 0) * x2[k].homogeneous()).squaredNorm() +
+                          (F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
 
-            double r23_sq = (C23 * C23) / nJc23_sq;
-            double loss23 = loss_fn.loss(r23_sq);
-            if (loss23 == 0.0)
-                return 0.0;
+        double r23_sq = (C23 * C23) / nJc23_sq;
+        double loss23 = loss_fn.loss(r23_sq);
+        if (loss23 == 0.0)
+            return 0.0;
 
-            cost += weights[k] * loss12;
-            cost += weights[k] * loss13;
-            cost += weights[k] * loss23;
+        cost += weights[k] * loss12;
+        cost += weights[k] * loss13;
+        cost += weights[k] * loss23;
 
         return cost;
     }
@@ -2007,9 +2017,9 @@ class ThreeViewCase3RelativePoseJacobianAccumulator {
 
         dE13dt13_1.row(0) = R13.row(2);
         dE13dt13_1.row(1).setZero();
-        dE13dt13_1.row(2) = - R13.row(0);
+        dE13dt13_1.row(2) = -R13.row(0);
 
-        dE13dt13_2.row(0) = - R13.row(1);
+        dE13dt13_2.row(0) = -R13.row(1);
         dE13dt13_2.row(1) = R13.row(0);
         dE13dt13_2.row(2).setZero();
 
@@ -2017,7 +2027,7 @@ class ThreeViewCase3RelativePoseJacobianAccumulator {
         dE13dt13.col(1) = Eigen::Map<Eigen::VectorXd>(dE13dt13_1.data(), dE13dt13_1.size());
         dE13dt13.col(2) = Eigen::Map<Eigen::VectorXd>(dE13dt13_2.data(), dE13dt13_2.size());
 
-        //TODO: this part calculates dE23dX and is not optimized yet
+        // TODO: this part calculates dE23dX and is not optimized yet
 
         // define skew(e_k)
         Eigen::Matrix3d b_0 = skew(Eigen::Vector3d::UnitX());
@@ -2030,14 +2040,14 @@ class ThreeViewCase3RelativePoseJacobianAccumulator {
         dE23dr12_2 = skew(R13 * b_2 * R12.transpose() * pose12.t) * R23 - skew(pose23.t) * R13 * b_2 * R12.transpose();
 
         Eigen::Matrix3d dE23dr13_0, dE23dr13_1, dE23dr13_2;
-        dE23dr13_0 = - dE23dr12_0;
-        dE23dr13_1 = - dE23dr12_1;
-        dE23dr13_2 = - dE23dr12_2;
+        dE23dr13_0 = -dE23dr12_0;
+        dE23dr13_1 = -dE23dr12_1;
+        dE23dr13_2 = -dE23dr12_2;
 
         // dE23dt12 = skew(tangent_basis_k) * R23
         Eigen::Matrix3d dE23dt12_0, dE23dt12_1;
-        dE23dt12_0 = - skew(R23 * tangent_basis.col(0)) * R23;
-        dE23dt12_1 = - skew(R23 * tangent_basis.col(1)) * R23;
+        dE23dt12_0 = -skew(R23 * tangent_basis.col(0)) * R23;
+        dE23dt12_1 = -skew(R23 * tangent_basis.col(1)) * R23;
 
         // dE23dt13 = skew(e_k) * R23
         Eigen::Matrix3d dE23dt13_0, dE23dt13_1, dE23dt13_2;
@@ -2047,9 +2057,9 @@ class ThreeViewCase3RelativePoseJacobianAccumulator {
 
         dE23dt13_1.row(0) = R23.row(2);
         dE23dt13_1.row(1).setZero();
-        dE23dt13_1.row(2) = - R23.row(0);
+        dE23dt13_1.row(2) = -R23.row(0);
 
-        dE23dt13_2.row(0) = - R23.row(1);
+        dE23dt13_2.row(0) = -R23.row(1);
         dE23dt13_2.row(1) = R23.row(0);
         dE23dt13_2.row(2).setZero();
 
@@ -2081,7 +2091,8 @@ class ThreeViewCase3RelativePoseJacobianAccumulator {
 
             // J_C12 is the Jacobian of the epipolar constraint w.r12.t. the image points
             Eigen::Vector4d J_C12;
-            J_C12 << F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous(), F12.block<2, 3>(0, 0) * x1[k].homogeneous();
+            J_C12 << F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous(),
+                F12.block<2, 3>(0, 0) * x1[k].homogeneous();
             const double nJ_C12 = J_C12.norm();
             const double inv_nJ_C12 = 1.0 / nJ_C12;
             const double r12 = C12 * inv_nJ_C12;
@@ -2091,7 +2102,8 @@ class ThreeViewCase3RelativePoseJacobianAccumulator {
             }
 
             Eigen::Vector4d J_C13;
-            J_C13 << F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(), F13.block<2, 3>(0, 0) * x1[k].homogeneous();
+            J_C13 << F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(),
+                F13.block<2, 3>(0, 0) * x1[k].homogeneous();
             const double nJ_C13 = J_C13.norm();
             const double inv_nJ_C13 = 1.0 / nJ_C13;
             const double r13 = C13 * inv_nJ_C13;
@@ -2102,7 +2114,8 @@ class ThreeViewCase3RelativePoseJacobianAccumulator {
             }
 
             Eigen::Vector4d J_C23;
-            J_C23 << F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(), F23.block<2, 3>(0, 0) * x2[k].homogeneous();
+            J_C23 << F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(),
+                F23.block<2, 3>(0, 0) * x2[k].homogeneous();
             const double nJ_C23 = J_C23.norm();
             const double inv_nJ_C23 = 1.0 / nJ_C23;
             const double r23 = C23 * inv_nJ_C23;
@@ -2180,20 +2193,22 @@ class ThreeViewCase3RelativePoseJacobianAccumulator {
             J23(0, 11) = dSdF23 * dF23df1;
             J23(0, 12) = dSdF23 * dF23df3;
 
-//            Eigen::Matrix<double, 1, 13> num_J;
-//            Eigen::Matrix<double, 13, 1> dp;
-//            double eps = 1.0e-8;
-//            for (int j = 0; j < 13; ++j){
-//                dp.setZero();
-//                dp(j, 0) = eps;
-//                ImageTriplet fwd_image_triplet = step(dp, image_triplet);
-//                ImageTriplet bcw_image_triplet = step(-dp, image_triplet);
-//                dp.setZero();
-//                num_J(0, j) = (residual(fwd_image_triplet, k) - residual(bcw_image_triplet, k)) / (2 * eps);
-//            }
-//
-//            std::cout << "Sym J: " << 2 * (weight12 * C12 * inv_nJ_C12 * J12 + weight13 * C13 * inv_nJ_C13 * J13 + weight23 * C23 * inv_nJ_C23 * J23) << std::endl;
-//            std::cout << "Num J: " << num_J << std::endl;
+            //            Eigen::Matrix<double, 1, 13> num_J;
+            //            Eigen::Matrix<double, 13, 1> dp;
+            //            double eps = 1.0e-8;
+            //            for (int j = 0; j < 13; ++j){
+            //                dp.setZero();
+            //                dp(j, 0) = eps;
+            //                ImageTriplet fwd_image_triplet = step(dp, image_triplet);
+            //                ImageTriplet bcw_image_triplet = step(-dp, image_triplet);
+            //                dp.setZero();
+            //                num_J(0, j) = (residual(fwd_image_triplet, k) - residual(bcw_image_triplet, k)) / (2 *
+            //                eps);
+            //            }
+            //
+            //            std::cout << "Sym J: " << 2 * (weight12 * C12 * inv_nJ_C12 * J12 + weight13 * C13 * inv_nJ_C13
+            //            * J13 + weight23 * C23 * inv_nJ_C23 * J23) << std::endl; std::cout << "Num J: " << num_J <<
+            //            std::endl;
 
             // Accumulate into Jtr
             Jtr += weight12 * C12 * inv_nJ_C12 * J12.transpose();
@@ -2220,10 +2235,13 @@ class ThreeViewCase3RelativePoseJacobianAccumulator {
         pose13_new.q = quat_step_post(image_triplet.poses.pose13.q, dp.block<3, 1>(5, 0));
         pose13_new.t = image_triplet.poses.pose13.t + dp.block<3, 1>(8, 0);
 
-        Camera camera1_new = Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera1.focal()+ dp(11,0), 0.0, 0.0}, -1, -1);
-        Camera camera3_new = Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera3.focal()+ dp(12,0), 0.0, 0.0}, -1, -1);
+        Camera camera1_new =
+            Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera1.focal() + dp(11, 0), 0.0, 0.0}, -1, -1);
+        Camera camera3_new =
+            Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera3.focal() + dp(12, 0), 0.0, 0.0}, -1, -1);
 
-        ImageTriplet image_triplet_new(ThreeViewCameraPose(pose12_new, pose13_new), camera1_new, camera1_new, camera3_new);
+        ImageTriplet image_triplet_new(ThreeViewCameraPose(pose12_new, pose13_new), camera1_new, camera1_new,
+                                       camera3_new);
         return image_triplet_new;
     }
     typedef ImageTriplet param_t;
@@ -2238,15 +2256,13 @@ class ThreeViewCase3RelativePoseJacobianAccumulator {
     Eigen::Matrix<double, 3, 2> tangent_basis;
 };
 
-
 template <typename LossFunction, typename ResidualWeightVector = UniformWeightVector>
 class ThreeViewCase4RelativePoseJacobianAccumulator {
   public:
     ThreeViewCase4RelativePoseJacobianAccumulator(const std::vector<Point2D> &points2D_1,
-                                                        const std::vector<Point2D> &points2D_2,
-                                                        const std::vector<Point2D> &points2D_3,
-                                                        const LossFunction &l,
-                                                        const ResidualWeightVector &w = ResidualWeightVector())
+                                                  const std::vector<Point2D> &points2D_2,
+                                                  const std::vector<Point2D> &points2D_3, const LossFunction &l,
+                                                  const ResidualWeightVector &w = ResidualWeightVector())
         : x1(points2D_1), x2(points2D_2), x3(points2D_3), loss_fn(l), weights(w) {}
 
     double residual(const ImageTriplet &image_triplet) const {
@@ -2313,38 +2329,38 @@ class ThreeViewCase4RelativePoseJacobianAccumulator {
         F23 = K3_inv * E23 * K2_inv;
 
         double cost = 0.0;
-            // F12
-            double C12 = x2[k].homogeneous().dot(F12 * x1[k].homogeneous());
-            double nJc12_sq = (F12.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
-                              (F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous()).squaredNorm();
-            double r12_sq = (C12 * C12) / nJc12_sq;
-            double loss12 = loss_fn.loss(r12_sq);
-            if (loss12 == 0.0)
-                return 0.0;
+        // F12
+        double C12 = x2[k].homogeneous().dot(F12 * x1[k].homogeneous());
+        double nJc12_sq = (F12.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                          (F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous()).squaredNorm();
+        double r12_sq = (C12 * C12) / nJc12_sq;
+        double loss12 = loss_fn.loss(r12_sq);
+        if (loss12 == 0.0)
+            return 0.0;
 
-            // F13
-            double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
-            double nJc13_sq = (F13.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
-                              (F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
+        // F13
+        double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
+        double nJc13_sq = (F13.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                          (F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
 
-            double r13_sq = (C13 * C13) / nJc13_sq;
-            double loss13 = loss_fn.loss(r13_sq);
-            if (loss13 == 0.0)
-                return 0.0;
+        double r13_sq = (C13 * C13) / nJc13_sq;
+        double loss13 = loss_fn.loss(r13_sq);
+        if (loss13 == 0.0)
+            return 0.0;
 
-            // F23
-            double C23 = x3[k].homogeneous().dot(F23 * x2[k].homogeneous());
-            double nJc23_sq = (F23.block<2, 3>(0, 0) * x2[k].homogeneous()).squaredNorm() +
-                              (F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
+        // F23
+        double C23 = x3[k].homogeneous().dot(F23 * x2[k].homogeneous());
+        double nJc23_sq = (F23.block<2, 3>(0, 0) * x2[k].homogeneous()).squaredNorm() +
+                          (F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
 
-            double r23_sq = (C23 * C23) / nJc23_sq;
-            double loss23 = loss_fn.loss(r23_sq);
-            if (loss23 == 0.0)
-                return 0.0;
+        double r23_sq = (C23 * C23) / nJc23_sq;
+        double loss23 = loss_fn.loss(r23_sq);
+        if (loss23 == 0.0)
+            return 0.0;
 
-            cost += weights[k] * loss12;
-            cost += weights[k] * loss13;
-            cost += weights[k] * loss23;
+        cost += weights[k] * loss12;
+        cost += weights[k] * loss13;
+        cost += weights[k] * loss23;
 
         return cost;
     }
@@ -2403,10 +2419,10 @@ class ThreeViewCase4RelativePoseJacobianAccumulator {
         dF12df2 << 0.0, 0.0, E12(2, 0), 0.0, 0.0, E12(2, 1), 0.0, 0.0, E12(2, 2) * f1;
 
         dF13df1 << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, E13(0, 2), E13(1, 2), E13(2, 2) * f3;
-//        dF13df3 << 0.0, 0.0, E13(2, 0), 0.0, 0.0, E13(2, 1), 0.0, 0.0, E13(2, 2) * f1;
+        //        dF13df3 << 0.0, 0.0, E13(2, 0), 0.0, 0.0, E13(2, 1), 0.0, 0.0, E13(2, 2) * f1;
 
         dF23df2 << 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, E23(0, 2), E23(1, 2), E23(2, 2) * f3;
-//        dF23df3 << 0.0, 0.0, E23(2, 0), 0.0, 0.0, E23(2, 1), 0.0, 0.0, E23(2, 2) * f2;
+        //        dF23df3 << 0.0, 0.0, E23(2, 0), 0.0, 0.0, E23(2, 1), 0.0, 0.0, E23(2, 2) * f2;
 
         Eigen::Matrix<double, 1, 9> dF12dE12, dF13dE13, dF23dE23;
         dF12dE12 << 1.0, 1.0, f2, 1.0, 1.0, f2, f1, f1, f1 * f2;
@@ -2459,9 +2475,9 @@ class ThreeViewCase4RelativePoseJacobianAccumulator {
 
         dE13dt13_1.row(0) = R13.row(2);
         dE13dt13_1.row(1).setZero();
-        dE13dt13_1.row(2) = - R13.row(0);
+        dE13dt13_1.row(2) = -R13.row(0);
 
-        dE13dt13_2.row(0) = - R13.row(1);
+        dE13dt13_2.row(0) = -R13.row(1);
         dE13dt13_2.row(1) = R13.row(0);
         dE13dt13_2.row(2).setZero();
 
@@ -2469,7 +2485,7 @@ class ThreeViewCase4RelativePoseJacobianAccumulator {
         dE13dt13.col(1) = Eigen::Map<Eigen::VectorXd>(dE13dt13_1.data(), dE13dt13_1.size());
         dE13dt13.col(2) = Eigen::Map<Eigen::VectorXd>(dE13dt13_2.data(), dE13dt13_2.size());
 
-        //TODO: this part calculates dE23dX and is not optimized yet
+        // TODO: this part calculates dE23dX and is not optimized yet
 
         // define skew(e_k)
         Eigen::Matrix3d b_0 = skew(Eigen::Vector3d::UnitX());
@@ -2482,14 +2498,14 @@ class ThreeViewCase4RelativePoseJacobianAccumulator {
         dE23dr12_2 = skew(R13 * b_2 * R12.transpose() * pose12.t) * R23 - skew(pose23.t) * R13 * b_2 * R12.transpose();
 
         Eigen::Matrix3d dE23dr13_0, dE23dr13_1, dE23dr13_2;
-        dE23dr13_0 = - dE23dr12_0;
-        dE23dr13_1 = - dE23dr12_1;
-        dE23dr13_2 = - dE23dr12_2;
+        dE23dr13_0 = -dE23dr12_0;
+        dE23dr13_1 = -dE23dr12_1;
+        dE23dr13_2 = -dE23dr12_2;
 
         // dE23dt12 = skew(tangent_basis_k) * R23
         Eigen::Matrix3d dE23dt12_0, dE23dt12_1;
-        dE23dt12_0 = - skew(R23 * tangent_basis.col(0)) * R23;
-        dE23dt12_1 = - skew(R23 * tangent_basis.col(1)) * R23;
+        dE23dt12_0 = -skew(R23 * tangent_basis.col(0)) * R23;
+        dE23dt12_1 = -skew(R23 * tangent_basis.col(1)) * R23;
 
         // dE23dt13 = skew(e_k) * R23
         Eigen::Matrix3d dE23dt13_0, dE23dt13_1, dE23dt13_2;
@@ -2499,9 +2515,9 @@ class ThreeViewCase4RelativePoseJacobianAccumulator {
 
         dE23dt13_1.row(0) = R23.row(2);
         dE23dt13_1.row(1).setZero();
-        dE23dt13_1.row(2) = - R23.row(0);
+        dE23dt13_1.row(2) = -R23.row(0);
 
-        dE23dt13_2.row(0) = - R23.row(1);
+        dE23dt13_2.row(0) = -R23.row(1);
         dE23dt13_2.row(1) = R23.row(0);
         dE23dt13_2.row(2).setZero();
 
@@ -2533,7 +2549,8 @@ class ThreeViewCase4RelativePoseJacobianAccumulator {
 
             // J_C12 is the Jacobian of the epipolar constraint w.r12.t. the image points
             Eigen::Vector4d J_C12;
-            J_C12 << F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous(), F12.block<2, 3>(0, 0) * x1[k].homogeneous();
+            J_C12 << F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous(),
+                F12.block<2, 3>(0, 0) * x1[k].homogeneous();
             const double nJ_C12 = J_C12.norm();
             const double inv_nJ_C12 = 1.0 / nJ_C12;
             const double r12 = C12 * inv_nJ_C12;
@@ -2543,7 +2560,8 @@ class ThreeViewCase4RelativePoseJacobianAccumulator {
             }
 
             Eigen::Vector4d J_C13;
-            J_C13 << F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(), F13.block<2, 3>(0, 0) * x1[k].homogeneous();
+            J_C13 << F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(),
+                F13.block<2, 3>(0, 0) * x1[k].homogeneous();
             const double nJ_C13 = J_C13.norm();
             const double inv_nJ_C13 = 1.0 / nJ_C13;
             const double r13 = C13 * inv_nJ_C13;
@@ -2554,7 +2572,8 @@ class ThreeViewCase4RelativePoseJacobianAccumulator {
             }
 
             Eigen::Vector4d J_C23;
-            J_C23 << F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(), F23.block<2, 3>(0, 0) * x2[k].homogeneous();
+            J_C23 << F23.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(),
+                F23.block<2, 3>(0, 0) * x2[k].homogeneous();
             const double nJ_C23 = J_C23.norm();
             const double inv_nJ_C23 = 1.0 / nJ_C23;
             const double r23 = C23 * inv_nJ_C23;
@@ -2632,20 +2651,22 @@ class ThreeViewCase4RelativePoseJacobianAccumulator {
             J23(0, 11) = 0;
             J23(0, 12) = dSdF23 * dF23df2;
 
-//            Eigen::Matrix<double, 1, 13> num_J;
-//            Eigen::Matrix<double, 13, 1> dp;
-//            double eps = 1.0e-8;
-//            for (int j = 0; j < 13; ++j){
-//                dp.setZero();
-//                dp(j, 0) = eps;
-//                ImageTriplet fwd_image_triplet = step(dp, image_triplet);
-//                ImageTriplet bcw_image_triplet = step(-dp, image_triplet);
-//                dp.setZero();
-//                num_J(0, j) = (residual(fwd_image_triplet, k) - residual(bcw_image_triplet, k)) / (2 * eps);
-//            }
-//
-//            std::cout << "Sym J: " << 2 * (weight12 * C12 * inv_nJ_C12 * J12 + weight13 * C13 * inv_nJ_C13 * J13 + weight23 * C23 * inv_nJ_C23 * J23) << std::endl;
-//            std::cout << "Num J: " << num_J << std::endl;
+            //            Eigen::Matrix<double, 1, 13> num_J;
+            //            Eigen::Matrix<double, 13, 1> dp;
+            //            double eps = 1.0e-8;
+            //            for (int j = 0; j < 13; ++j){
+            //                dp.setZero();
+            //                dp(j, 0) = eps;
+            //                ImageTriplet fwd_image_triplet = step(dp, image_triplet);
+            //                ImageTriplet bcw_image_triplet = step(-dp, image_triplet);
+            //                dp.setZero();
+            //                num_J(0, j) = (residual(fwd_image_triplet, k) - residual(bcw_image_triplet, k)) / (2 *
+            //                eps);
+            //            }
+            //
+            //            std::cout << "Sym J: " << 2 * (weight12 * C12 * inv_nJ_C12 * J12 + weight13 * C13 * inv_nJ_C13
+            //            * J13 + weight23 * C23 * inv_nJ_C23 * J23) << std::endl; std::cout << "Num J: " << num_J <<
+            //            std::endl;
 
             // Accumulate into Jtr
             Jtr += weight12 * C12 * inv_nJ_C12 * J12.transpose();
@@ -2672,10 +2693,13 @@ class ThreeViewCase4RelativePoseJacobianAccumulator {
         pose13_new.q = quat_step_post(image_triplet.poses.pose13.q, dp.block<3, 1>(5, 0));
         pose13_new.t = image_triplet.poses.pose13.t + dp.block<3, 1>(8, 0);
 
-        Camera camera1_new = Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera1.focal()+ dp(11,0), 0.0, 0.0}, -1, -1);
-        Camera camera2_new = Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera2.focal()+ dp(12,0), 0.0, 0.0}, -1, -1);
+        Camera camera1_new =
+            Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera1.focal() + dp(11, 0), 0.0, 0.0}, -1, -1);
+        Camera camera2_new =
+            Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera2.focal() + dp(12, 0), 0.0, 0.0}, -1, -1);
 
-        ImageTriplet image_triplet_new(ThreeViewCameraPose(pose12_new, pose13_new), camera1_new, camera2_new, image_triplet.camera3);
+        ImageTriplet image_triplet_new(ThreeViewCameraPose(pose12_new, pose13_new), camera1_new, camera2_new,
+                                       image_triplet.camera3);
         return image_triplet_new;
     }
     typedef ImageTriplet param_t;
@@ -2694,10 +2718,10 @@ template <typename LossFunction, typename ResidualWeightVector = UniformWeightVe
 class ThreeViewSharedFocalUnscaledRelativePoseJacobianAccumulator {
   public:
     ThreeViewSharedFocalUnscaledRelativePoseJacobianAccumulator(const std::vector<Point2D> &points2D_1,
-                                                        const std::vector<Point2D> &points2D_2,
-                                                        const std::vector<Point2D> &points2D_3,
-                                                        const LossFunction &l,
-                                                        const ResidualWeightVector &w = ResidualWeightVector())
+                                                                const std::vector<Point2D> &points2D_2,
+                                                                const std::vector<Point2D> &points2D_3,
+                                                                const LossFunction &l,
+                                                                const ResidualWeightVector &w = ResidualWeightVector())
         : x1(points2D_1), x2(points2D_2), x3(points2D_3), loss_fn(l), weights(w) {}
 
     double residual(const ImageTriplet &image_triplet) const {
@@ -2723,12 +2747,12 @@ class ThreeViewSharedFocalUnscaledRelativePoseJacobianAccumulator {
             double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
             double nJc13_sq = (F13.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
                               (F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
-            
+
             double r13_sq = (C13 * C13) / nJc13_sq;
             double loss13 = loss_fn.loss(r13_sq);
             if (loss13 == 0.0)
                 continue;
-            
+
             cost += weights[k] * loss12;
             cost += weights[k] * loss13;
         }
@@ -2743,29 +2767,29 @@ class ThreeViewSharedFocalUnscaledRelativePoseJacobianAccumulator {
         essential_from_motion(image_triplet.poses.pose13, &F13);
         F12 = K_inv * F12 * K_inv;
         F13 = K_inv * F13 * K_inv;
-        
+
         double cost = 0.0;
-            // F12
-            double C12 = x2[k].homogeneous().dot(F12 * x1[k].homogeneous());
-            double nJc12_sq = (F12.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
-                              (F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous()).squaredNorm();
-            double r12_sq = (C12 * C12) / nJc12_sq;
-            double loss12 = loss_fn.loss(r12_sq);
-            if (loss12 == 0.0)
-                return 0.0;
+        // F12
+        double C12 = x2[k].homogeneous().dot(F12 * x1[k].homogeneous());
+        double nJc12_sq = (F12.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                          (F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous()).squaredNorm();
+        double r12_sq = (C12 * C12) / nJc12_sq;
+        double loss12 = loss_fn.loss(r12_sq);
+        if (loss12 == 0.0)
+            return 0.0;
 
-            // F13
-            double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
-            double nJc13_sq = (F13.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
-                              (F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
+        // F13
+        double C13 = x3[k].homogeneous().dot(F13 * x1[k].homogeneous());
+        double nJc13_sq = (F13.block<2, 3>(0, 0) * x1[k].homogeneous()).squaredNorm() +
+                          (F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous()).squaredNorm();
 
-            double r13_sq = (C13 * C13) / nJc13_sq;
-            double loss13 = loss_fn.loss(r13_sq);
-            if (loss13 == 0.0)
-                return 0.0;
+        double r13_sq = (C13 * C13) / nJc13_sq;
+        double loss13 = loss_fn.loss(r13_sq);
+        if (loss13 == 0.0)
+            return 0.0;
 
-            cost += weights[k] * loss12;
-            cost += weights[k] * loss13;
+        cost += weights[k] * loss12;
+        cost += weights[k] * loss13;
 
         return cost;
     }
@@ -2776,9 +2800,9 @@ class ThreeViewSharedFocalUnscaledRelativePoseJacobianAccumulator {
         // We start by setting up a basis for the updates in the translation (orthogonal to t)
         // We find the minimum element of t and cross product with the corresponding basis vector.
         // (this ensures that the first cross product is not close to the zero vector)
-        
+
         CameraPose pose12 = image_triplet.poses.pose12;
-        
+
         if (std::abs(pose12.t.x()) < std::abs(pose12.t.y())) {
             // x < y
             if (std::abs(pose12.t.x()) < std::abs(pose12.t.z())) {
@@ -2797,7 +2821,7 @@ class ThreeViewSharedFocalUnscaledRelativePoseJacobianAccumulator {
         tangent_basis_12.col(1) = tangent_basis_12.col(0).cross(pose12.t).normalized();
 
         CameraPose pose13 = image_triplet.poses.pose13;
-        
+
         if (std::abs(pose13.t.x()) < std::abs(pose13.t.y())) {
             // x < y
             if (std::abs(pose13.t.x()) < std::abs(pose13.t.z())) {
@@ -2814,13 +2838,12 @@ class ThreeViewSharedFocalUnscaledRelativePoseJacobianAccumulator {
             }
         }
         tangent_basis_13.col(1) = tangent_basis_13.col(0).cross(pose13.t).normalized();
-        
-        
+
         Eigen::Matrix3d E12, R12, E13, R13, E23, R23, F12, F13, F23;
 
         R12 = pose12.R();
         essential_from_motion(pose12, &E12);
-        
+
         R13 = image_triplet.poses.pose13.R();
         essential_from_motion(image_triplet.poses.pose13, &E13);
 
@@ -2859,11 +2882,11 @@ class ThreeViewSharedFocalUnscaledRelativePoseJacobianAccumulator {
         dE12dt12.block<3, 1>(3, 1) = tangent_basis_12.col(1).cross(R12.col(1));
         dE12dt12.block<3, 1>(6, 0) = tangent_basis_12.col(0).cross(R12.col(2));
         dE12dt12.block<3, 1>(6, 1) = tangent_basis_12.col(1).cross(R12.col(2));
-        
+
         // Matrices contain the jacobians of E12 w.r.t. the rotation and translation parameters
         Eigen::Matrix<double, 9, 3> dE13dr13;
         Eigen::Matrix<double, 9, 2> dE13dt13;
-        
+
         // Each column is vec(E13*skew(e_k)) where e_k is k:th basis vector
         dE13dr13.block<3, 1>(0, 0).setZero();
         dE13dr13.block<3, 1>(0, 1) = -E13.col(2);
@@ -2890,7 +2913,8 @@ class ThreeViewSharedFocalUnscaledRelativePoseJacobianAccumulator {
 
             // J_C12 is the Jacobian of the epipolar constraint w.r12.t. the image points
             Eigen::Vector4d J_C12;
-            J_C12 << F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous(), F12.block<2, 3>(0, 0) * x1[k].homogeneous();
+            J_C12 << F12.block<3, 2>(0, 0).transpose() * x2[k].homogeneous(),
+                F12.block<2, 3>(0, 0) * x1[k].homogeneous();
             const double nJ_C12 = J_C12.norm();
             const double inv_nJ_C12 = 1.0 / nJ_C12;
             const double r12 = C12 * inv_nJ_C12;
@@ -2898,9 +2922,10 @@ class ThreeViewSharedFocalUnscaledRelativePoseJacobianAccumulator {
             if (weight12 == 0.0) {
                 continue;
             }
-                        
+
             Eigen::Vector4d J_C13;
-            J_C13 << F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(), F13.block<2, 3>(0, 0) * x1[k].homogeneous();
+            J_C13 << F13.block<3, 2>(0, 0).transpose() * x3[k].homogeneous(),
+                F13.block<2, 3>(0, 0) * x1[k].homogeneous();
             const double nJ_C13 = J_C13.norm();
             const double inv_nJ_C13 = 1.0 / nJ_C13;
             const double r13 = C13 * inv_nJ_C13;
@@ -2909,7 +2934,7 @@ class ThreeViewSharedFocalUnscaledRelativePoseJacobianAccumulator {
             if (weight13 == 0.0) {
                 continue;
             }
-            
+
             num_residuals += 2;
 
             // Compute Jacobian of Sampson error w.r12.t the fundamental/essential matrix (3x3)
@@ -2940,7 +2965,7 @@ class ThreeViewSharedFocalUnscaledRelativePoseJacobianAccumulator {
             dSdF13(6) -= s13 * (J_C13(2));
             dSdF13(7) -= s13 * (J_C13(3));
             dSdF13 *= inv_nJ_C13;
-            
+
             // and then w.r.t. the pose parameters (rotation + tangent basis for translation)
             Eigen::Matrix<double, 1, 11> J12;
             J12.block<1, 3>(0, 0) = dSdF12.cwiseProduct(dFdE) * dE12dr12;
@@ -2954,22 +2979,24 @@ class ThreeViewSharedFocalUnscaledRelativePoseJacobianAccumulator {
             J13.block<1, 2>(0, 8) = dSdF13.cwiseProduct(dFdE) * dE13dt13;
             J13(0, 10) = dSdF13 * dF13df;
 
-//            Eigen::Matrix<double, 1, 11> num_J;
-//            Eigen::Matrix<double, 11, 1> dp;
-//            double eps = 1.0e-8;
-//            for (int j = 0; j < 11; ++j){
-//                dp.setZero();
-//                dp(j, 0) = eps;
-//                ImageTriplet fwd = step(dp, image_triplet);
-//                ImageTriplet bcw = step(-dp, image_triplet);
-//                num_J(0, j) = (residual(fwd, k) - residual(bcw, k)) / (2 * eps);
-//            }
-//
-//            if ((2 * (weight12 * C12 * inv_nJ_C12 * J12 + weight13 * C13 * inv_nJ_C13 * J13) - num_J).norm() > 1e-6) {
-//                std::cout << "Sym J: " << 2 * (weight12 * C12 * inv_nJ_C12 * J12 + weight13 * C13 * inv_nJ_C13 * J13)
-//                          << std::endl;
-//                std::cout << "Num J: " << num_J << std::endl;
-//            }
+            //            Eigen::Matrix<double, 1, 11> num_J;
+            //            Eigen::Matrix<double, 11, 1> dp;
+            //            double eps = 1.0e-8;
+            //            for (int j = 0; j < 11; ++j){
+            //                dp.setZero();
+            //                dp(j, 0) = eps;
+            //                ImageTriplet fwd = step(dp, image_triplet);
+            //                ImageTriplet bcw = step(-dp, image_triplet);
+            //                num_J(0, j) = (residual(fwd, k) - residual(bcw, k)) / (2 * eps);
+            //            }
+            //
+            //            if ((2 * (weight12 * C12 * inv_nJ_C12 * J12 + weight13 * C13 * inv_nJ_C13 * J13) -
+            //            num_J).norm() > 1e-6) {
+            //                std::cout << "Sym J: " << 2 * (weight12 * C12 * inv_nJ_C12 * J12 + weight13 * C13 *
+            //                inv_nJ_C13 * J13)
+            //                          << std::endl;
+            //                std::cout << "Num J: " << num_J << std::endl;
+            //            }
 
             // Accumulate into Jtr
             Jtr += weight12 * C12 * inv_nJ_C12 * J12.transpose();
@@ -2994,7 +3021,8 @@ class ThreeViewSharedFocalUnscaledRelativePoseJacobianAccumulator {
         pose13_new.q = quat_step_post(image_triplet.poses.pose13.q, dp.block<3, 1>(5, 0));
         pose13_new.t = image_triplet.poses.pose13.t + tangent_basis_13 * dp.block<2, 1>(8, 0);
 
-        Camera camera_new = Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera1.focal()+ dp(10,0), 0.0, 0.0}, -1, -1);
+        Camera camera_new =
+            Camera("SIMPLE_PINHOLE", std::vector<double>{image_triplet.camera1.focal() + dp(10, 0), 0.0, 0.0}, -1, -1);
 
         ImageTriplet image_triplet_new(ThreeViewCameraPose(pose12_new, pose13_new), camera_new);
         return image_triplet_new;
@@ -3202,8 +3230,9 @@ class SharedFocalRelativePoseJacobianAccumulator {
 template <typename LossFunction, typename ResidualWeightVector = UniformWeightVector>
 class OneFocalRelativePoseJacobianAccumulator {
   public:
-    OneFocalRelativePoseJacobianAccumulator(const std::vector<Point2D> &points2D_1, const std::vector<Point2D> &points2D_2,
-                                            const LossFunction &l, const ResidualWeightVector &w = ResidualWeightVector())
+    OneFocalRelativePoseJacobianAccumulator(const std::vector<Point2D> &points2D_1,
+                                            const std::vector<Point2D> &points2D_2, const LossFunction &l,
+                                            const ResidualWeightVector &w = ResidualWeightVector())
         : x1(points2D_1), x2(points2D_2), loss_fn(l), weights(w) {}
 
     double residual(const ImagePair &image_pair) const {

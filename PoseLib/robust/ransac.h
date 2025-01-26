@@ -53,24 +53,25 @@ RansacStats ransac_pnpl(const std::vector<Point2D> &points2D, const std::vector<
 RansacStats ransac_relpose(const std::vector<Point2D> &x1, const std::vector<Point2D> &x2, const RansacOptions &opt,
                            CameraPose *best_model, std::vector<char> *best_inliers);
 
-RansacStats
-ransac_3v_relpose(const std::vector<Point2D> &x1, const std::vector<Point2D> &x2, const std::vector<Point2D> &x3,
-                  const RansacOptions &opt, ThreeViewCameraPose *three_view_pose, std::vector<char> *inliers);
+RansacStats ransac_3v_relpose(const std::vector<Point2D> &x1, const std::vector<Point2D> &x2,
+                              const std::vector<Point2D> &x3, const RansacOptions &opt,
+                              ThreeViewCameraPose *three_view_pose, std::vector<char> *inliers);
 
 RansacStats ransac_3v_focal_cases_relpose(const std::vector<Point2D> &x1, const std::vector<Point2D> &x2,
                                           const std::vector<Point2D> &x3, const RansacOptions &opt,
                                           ImageTriplet *image_triplet, std::vector<char> *inliers);
 
 RansacStats ransac_3v_focal_case2_relpose(const std::vector<Point2D> &x1, const std::vector<Point2D> &x2,
-                                          const std::vector<Point2D> &x3, const Camera &camera3, const RansacOptions &opt,
-                                          ImageTriplet *image_triplet, std::vector<char> *best_inliers);
+                                          const std::vector<Point2D> &x3, const Camera &camera3,
+                                          const RansacOptions &opt, ImageTriplet *image_triplet,
+                                          std::vector<char> *best_inliers);
 
 RansacStats ransac_shared_focal_relpose(const std::vector<Point2D> &x1, const std::vector<Point2D> &x2,
                                         const RansacOptions &opt, ImagePair *best_model,
                                         std::vector<char> *best_inliers);
 
-RansacStats ransac_onefocal_relpose(const Camera &camera2, const std::vector<Point2D> &x1, const std::vector<Point2D> &x2,
-                                    const RansacOptions &opt, ImagePair *best_model,
+RansacStats ransac_onefocal_relpose(const Camera &camera2, const std::vector<Point2D> &x1,
+                                    const std::vector<Point2D> &x2, const RansacOptions &opt, ImagePair *best_model,
                                     std::vector<char> *best_inliers);
 
 RansacStats ransac_fundamental(const std::vector<Point2D> &x1, const std::vector<Point2D> &x2, const RansacOptions &opt,

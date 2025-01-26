@@ -31,13 +31,13 @@
 
 #include "PoseLib/types.h"
 
-#include <vector>
-#include <type_traits>
 #include <iostream>
+#include <type_traits>
+#include <vector>
 namespace poselib {
 
-//template <typename T>
-//class has_degeneracy {
+// template <typename T>
+// class has_degeneracy {
 //    typedef char one;
 //    struct two { char x[2]; };
 //    template <typename C> static one test( decltype(&C::degeneracy));
@@ -46,12 +46,11 @@ namespace poselib {
 //    enum { value = sizeof(test<T>(0)) == sizeof(char) };
 //};
 
-template <typename T, typename M, typename = std::void_t<>>
-struct has_degeneracy : std::false_type {};
+template <typename T, typename M, typename = std::void_t<>> struct has_degeneracy : std::false_type {};
 
 template <typename T, typename M>
-struct has_degeneracy<T, M, std::void_t<decltype(std::declval<T>().degeneracy(std::declval<M*>()))>> : std::true_type {};
-
+struct has_degeneracy<T, M, std::void_t<decltype(std::declval<T>().degeneracy(std::declval<M *>()))>> : std::true_type {
+};
 
 // Templated LO-RANSAC implementation (inspired by RansacLib from Torsten Sattler)
 template <typename Solver, typename Model = CameraPose>
@@ -90,7 +89,7 @@ RansacStats ransac(Solver &estimator, const RansacOptions &opt, Model *best_mode
 
             if (more_inliers || better_score) {
                 if constexpr (has_degeneracy<Solver, Model>::value) {
-//                if constexpr (std::is_member_function_pointer_v<decltype(&Solver::degenerate)>) {
+                    //                if constexpr (std::is_member_function_pointer_v<decltype(&Solver::degenerate)>) {
                     int status = estimator.degeneracy(&models[i]);
 
                     // model is degenerate but a new model was found using the degen solver

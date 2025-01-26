@@ -31,7 +31,7 @@ void get_homographies(const std::vector<Point2D> &x1, const std::vector<Point2D>
 
     size_t min_inlier_count = std::floor(x1.size() * inlier_threshold);
 
-    for (size_t i = 0; i < x1.size(); ++i){
+    for (size_t i = 0; i < x1.size(); ++i) {
         x1h[i] = x1[i].homogeneous().normalized();
         x2h[i] = x2[i].homogeneous().normalized();
     }
@@ -41,9 +41,9 @@ void get_homographies(const std::vector<Point2D> &x1, const std::vector<Point2D>
     std::vector<Point3D> x1s(4), x2s(4);
     Eigen::Matrix3d H;
 
-    for (int k = 0; k < iterations; ++k){
+    for (int k = 0; k < iterations; ++k) {
         sampler.generate_sample(&sample);
-        for (size_t i = 0; i < 4; ++i){
+        for (size_t i = 0; i < 4; ++i) {
             x1s[i] = x1h[sample[i]];
             x2s[i] = x2h[sample[i]];
         }
@@ -53,7 +53,7 @@ void get_homographies(const std::vector<Point2D> &x1, const std::vector<Point2D>
             continue;
         size_t inlier_count;
         compute_homography_msac_score(H, x1, x2, sq_distance_threshold, &inlier_count);
-        if (inlier_count > min_inlier_count){
+        if (inlier_count > min_inlier_count) {
             refine_homography(x1, x2, &H, bundle_opt);
             Hs->emplace_back(H);
             inlier_ratios->emplace_back(float(inlier_count) / float(x1.size()));
@@ -61,13 +61,10 @@ void get_homographies(const std::vector<Point2D> &x1, const std::vector<Point2D>
     }
 }
 
-std::pair<std::vector<double>, std::vector<double>> estimate_focal_homography(std::vector<Point2D> x1_1,
-                                                                              std::vector<Point2D> x2_1,
-                                                                              std::vector<Point2D> x1_2,
-                                                                              std::vector<Point2D> x3_2,
-                                                                              const Point2D& pp, int iterations,
-                                                                              double inlier_threshold,
-                                                                              double distance_threshold) {
+std::pair<std::vector<double>, std::vector<double>>
+estimate_focal_homography(std::vector<Point2D> x1_1, std::vector<Point2D> x2_1, std::vector<Point2D> x1_2,
+                          std::vector<Point2D> x3_2, const Point2D &pp, int iterations, double inlier_threshold,
+                          double distance_threshold) {
     // preprocess files
 
     double scale = 0.0;
@@ -110,20 +107,20 @@ std::pair<std::vector<double>, std::vector<double>> estimate_focal_homography(st
     focals.reserve(iterations * iterations * 10);
     weights.reserve(iterations * iterations * 10);
 
-//    for (Eigen::Matrix3d HH12: H12){
-//        for (Eigen::Matrix3d HH13: H13){
-    for (size_t i=0; i < H12.size(); ++i){
-        for (size_t j=0; j < H13.size(); ++j){
+    //    for (Eigen::Matrix3d HH12: H12){
+    //        for (Eigen::Matrix3d HH13: H13){
+    for (size_t i = 0; i < H12.size(); ++i) {
+        for (size_t j = 0; j < H13.size(); ++j) {
             std::vector<double> fs = solver_homo3f(H12[i], H13[j]);
             focals.insert(focals.end(), fs.begin(), fs.end());
             double weight = inlier_ratios12[i] + inlier_ratios13[j];
-            for (size_t k = 0; k < fs.size(); ++k){
+            for (size_t k = 0; k < fs.size(); ++k) {
                 weights.push_back(weight);
             }
         }
     }
 
-    for(size_t k = 0; k < focals.size(); ++k){
+    for (size_t k = 0; k < focals.size(); ++k) {
         focals[k] *= scale;
     }
 

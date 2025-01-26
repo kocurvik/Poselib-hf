@@ -8,7 +8,7 @@
 
 namespace poselib {
 
-//void fast_eigenvector_solver_relpose_6p_onefocal(double *eigv, int neig, Eigen::Matrix<double, 9, 9> &AM,
+// void fast_eigenvector_solver_relpose_6p_onefocal(double *eigv, int neig, Eigen::Matrix<double, 9, 9> &AM,
 //                             Eigen::Matrix<std::complex<double>, 3, 9> &sols) {
 //    static const int ind[] = {2, 4, 6, 9, 12, 15, 18, 22, 25, 29};
 //    // Truncated action matrix containing non-trivial rows
@@ -33,17 +33,10 @@ namespace poselib {
 //        AA.col(6) = AMs.col(10) + zi[0] * AMs.col(16) + zi[1] * AMs.col(17) + zi[2] * AMs.col(18);
 //        AA.col(7) = AMs.col(20) + zi[0] * AMs.col(21) + zi[1] * AMs.col(22);
 //        AA.col(8) = AMs.col(19) + zi[0] * AMs.col(23) + zi[1] * AMs.col(24) + zi[2] * AMs.col(25);
-//        AA.col(9) = AMs.col(0) + zi[0] * AMs.col(26) + zi[1] * AMs.col(27) + zi[2] * AMs.col(28) + zi[3] * AMs.col(29);
-//        AA(0, 0) = AA(0, 0) - zi[0];
-//        AA(1, 1) = AA(1, 1) - zi[1];
-//        AA(2, 2) = AA(2, 2) - zi[1];
-//        AA(3, 3) = AA(3, 3) - zi[3];
-//        AA(4, 4) = AA(4, 4) - zi[1];
-//        AA(5, 5) = AA(5, 5) - zi[2];
-//        AA(6, 6) = AA(6, 6) - zi[3];
-//        AA(7, 7) = AA(7, 7) - zi[2];
-//        AA(8, 8) = AA(8, 8) - zi[3];
-//        AA(9, 9) = AA(9, 9) - zi[4];
+//        AA.col(9) = AMs.col(0) + zi[0] * AMs.col(26) + zi[1] * AMs.col(27) + zi[2] * AMs.col(28) + zi[3] *
+//        AMs.col(29); AA(0, 0) = AA(0, 0) - zi[0]; AA(1, 1) = AA(1, 1) - zi[1]; AA(2, 2) = AA(2, 2) - zi[1]; AA(3, 3) =
+//        AA(3, 3) - zi[3]; AA(4, 4) = AA(4, 4) - zi[1]; AA(5, 5) = AA(5, 5) - zi[2]; AA(6, 6) = AA(6, 6) - zi[3]; AA(7,
+//        7) = AA(7, 7) - zi[2]; AA(8, 8) = AA(8, 8) - zi[3]; AA(9, 9) = AA(9, 9) - zi[4];
 //
 //        Eigen::Matrix<double, 9, 1> s = AA.leftCols(9).colPivHouseholderQr().solve(-AA.col(9));
 //        sols(0, i) = s(3);
@@ -964,14 +957,14 @@ int solver_relpose_6pt_onefocal(const Eigen::VectorXd &data, Eigen::Matrix<std::
     sols.row(2) = V.row(7).array();
     int nroots = 9;
 
-//
-//    double p[1+9];
-//    Eigen::Matrix<double, 9, 9> AMp = AM;
-//    sturm::charpoly_danilevsky_piv(AMp, p);
-//    double roots[9];
-//    int nroots;
-//    nroots = sturm::bisect_sturm<9>(p, roots, 1e-12);
-//    fast_eigenvector_solver_relpose_6p_onefocal(roots, nroots, AM, sols);
+    //
+    //    double p[1+9];
+    //    Eigen::Matrix<double, 9, 9> AMp = AM;
+    //    sturm::charpoly_danilevsky_piv(AMp, p);
+    //    double roots[9];
+    //    int nroots;
+    //    nroots = sturm::bisect_sturm<9>(p, roots, 1e-12);
+    //    fast_eigenvector_solver_relpose_6p_onefocal(roots, nroots, AM, sols);
 
     return nroots;
 }
@@ -1008,8 +1001,8 @@ int relpose_6pt_onefocal(const std::vector<Eigen::Vector3d> &x1, const std::vect
         F_vector.normalize();
         Eigen::Matrix3d F = Eigen::Matrix3d(F_vector.data());
 
-        Eigen::DiagonalMatrix<double, 3> K (focal, focal, 1.0);
-        Eigen::DiagonalMatrix<double, 3> K_inv (1.0, 1.0, focal);
+        Eigen::DiagonalMatrix<double, 3> K(focal, focal, 1.0);
+        Eigen::DiagonalMatrix<double, 3> K_inv(1.0, 1.0, focal);
 
         Eigen::Matrix3d E = F * K;
 
@@ -1019,16 +1012,15 @@ int relpose_6pt_onefocal(const std::vector<Eigen::Vector3d> &x1, const std::vect
             x1_u[j] = Eigen::Vector3d(x1[j](0) / focal, x1[j](1) / focal, x1[j](2)).normalized();
         }
 
-
         CameraPoseVector poses;
         motion_from_essential(E, x1_u, x2, &poses);
 
         Camera camera1 = Camera("SIMPLE_PINHOLE", {focal, 0.0, 0.0}, -1, -1);
 
-        for (const CameraPose& pose : poses) {
+        for (const CameraPose &pose : poses) {
             image_pairs->emplace_back(pose, camera1, camera2);
             n_poses++;
-        }        
+        }
     }
 
     return n_poses;

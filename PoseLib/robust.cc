@@ -259,7 +259,7 @@ RansacStats estimate_shared_focal_relative_pose(const std::vector<Point2D> &poin
     BundleOptions bundle_opt_scaled = bundle_opt;
     bundle_opt_scaled.loss_scale /= scale;
 
-//    std::cout << "Scaled focal: " << 600 / scale << std::endl;
+    //    std::cout << "Scaled focal: " << 600 / scale << std::endl;
 
     RansacStats stats = ransac_shared_focal_relpose(x1_norm, x2_norm, ransac_opt_scaled, image_pair, inliers);
 
@@ -288,10 +288,9 @@ RansacStats estimate_shared_focal_relative_pose(const std::vector<Point2D> &poin
     return stats;
 }
 
-
 RansacStats estimate_onefocal_relative_pose(const std::vector<Point2D> &points2D_1,
-                                            const std::vector<Point2D> &points2D_2, const Camera &camera2, const Point2D &pp1,
-                                            const RansacOptions &ransac_opt,
+                                            const std::vector<Point2D> &points2D_2, const Camera &camera2,
+                                            const Point2D &pp1, const RansacOptions &ransac_opt,
                                             const BundleOptions &bundle_opt, ImagePair *image_pair,
                                             std::vector<char> *inliers) {
 
@@ -320,8 +319,9 @@ RansacStats estimate_onefocal_relative_pose(const std::vector<Point2D> &points2D
     bundle_opt_scaled.loss_scale /= scale;
 
     Camera scaled_camera2 = Camera("SIMPLE_PINHOLE", {camera2.focal() / scale, 0.0, 0.0}, -1, -1);
-    RansacStats stats = ransac_onefocal_relpose(scaled_camera2, x1_norm, x2_norm, ransac_opt_scaled, image_pair, inliers);
-//    RansacStats stats = ransac_onefocal_relpose(camera2, points2D_1, points2D_2, ransac_opt, image_pair, inliers);
+    RansacStats stats =
+        ransac_onefocal_relpose(scaled_camera2, x1_norm, x2_norm, ransac_opt_scaled, image_pair, inliers);
+    //    RansacStats stats = ransac_onefocal_relpose(camera2, points2D_1, points2D_2, ransac_opt, image_pair, inliers);
 
     if (stats.num_inliers > 6) {
         std::vector<Point2D> x1_inliers;
@@ -348,7 +348,6 @@ RansacStats estimate_onefocal_relative_pose(const std::vector<Point2D> &points2D
 
     return stats;
 }
-
 
 RansacStats estimate_3v_relative_pose(const std::vector<Point2D> &x1, const std::vector<Point2D> &x2,
                                       const std::vector<Point2D> &x3, const Camera &camera1, const Camera &camera2,
@@ -392,7 +391,7 @@ RansacStats estimate_3v_relative_pose(const std::vector<Point2D> &x1, const std:
         scaled_bundle_opt.loss_scale =
             bundle_opt.loss_scale * 0.5 * (1.0 / camera1.focal() + 1.0 / camera2.focal() + 1.0 / camera3.focal());
 
-         refine_3v_relpose(x1_inliers, x2_inliers, x3_inliers, three_view_pose, scaled_bundle_opt);
+        refine_3v_relpose(x1_inliers, x2_inliers, x3_inliers, three_view_pose, scaled_bundle_opt);
     }
 
     return stats;
@@ -482,10 +481,9 @@ RansacStats estimate_3v_shared_focal_relative_pose(const std::vector<Point2D> &x
 }
 
 RansacStats estimate_3v_case2_relative_pose(const std::vector<Point2D> &x1, const std::vector<Point2D> &x2,
-                                            const std::vector<Point2D> &x3, const Point2D &pp1,
-                                            const Camera &camera3, const RansacOptions &ransac_opt,
-                                            const BundleOptions &bundle_opt, ImageTriplet *image_triplet,
-                                            std::vector<char> *inliers) {
+                                            const std::vector<Point2D> &x3, const Point2D &pp1, const Camera &camera3,
+                                            const RansacOptions &ransac_opt, const BundleOptions &bundle_opt,
+                                            ImageTriplet *image_triplet, std::vector<char> *inliers) {
     std::vector<Point2D> x1_norm = x1;
     std::vector<Point2D> x2_norm = x2;
     std::vector<Point2D> x3_norm = x3;
@@ -518,10 +516,10 @@ RansacStats estimate_3v_case2_relative_pose(const std::vector<Point2D> &x1, cons
     ransac_opt_scaled.f2_gt = ransac_opt.f2_gt / scale;
     ransac_opt_scaled.f3_gt = ransac_opt.f3_gt / scale;
 
-    Camera scaled_camera3 = Camera("SIMPLE_PINHOLE", {camera3.focal()/ scale, 0.0, 0.0}, -1, -1);
+    Camera scaled_camera3 = Camera("SIMPLE_PINHOLE", {camera3.focal() / scale, 0.0, 0.0}, -1, -1);
 
-    RansacStats stats =
-        ransac_3v_focal_case2_relpose(x1_norm, x2_norm, x3_norm, scaled_camera3, ransac_opt_scaled, image_triplet, inliers);
+    RansacStats stats = ransac_3v_focal_case2_relpose(x1_norm, x2_norm, x3_norm, scaled_camera3, ransac_opt_scaled,
+                                                      image_triplet, inliers);
 
     if (stats.num_inliers > 4) {
         std::vector<Point2D> x1_inliers;

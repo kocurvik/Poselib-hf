@@ -90,10 +90,9 @@ RansacStats estimate_3v_shared_focal_relative_pose(const std::vector<Point2D> &x
                                                    std::vector<char> *inliers, const Point2D &pp);
 
 RansacStats estimate_3v_case2_relative_pose(const std::vector<Point2D> &x1, const std::vector<Point2D> &x2,
-                                            const std::vector<Point2D> &x3, const Point2D &pp1,
-                                            const Camera &camera3, const RansacOptions &ransac_opt,
-                                            const BundleOptions &bundle_opt, ImageTriplet *image_triplet,
-                                            std::vector<char> *inliers);
+                                            const std::vector<Point2D> &x3, const Point2D &pp1, const Camera &camera3,
+                                            const RansacOptions &ransac_opt, const BundleOptions &bundle_opt,
+                                            ImageTriplet *image_triplet, std::vector<char> *inliers);
 
 // Estimates relative pose with shared unknown focal length using LO-RANSAC followed by non-linear refinement
 // Threshold for Sampson error is set by RansacOptions.max_epipolar_error
@@ -102,10 +101,9 @@ RansacStats estimate_shared_focal_relative_pose(const std::vector<Point2D> &poin
                                                 const RansacOptions &ransac_opt, const BundleOptions &bundle_opt,
                                                 ImagePair *image_pair, std::vector<char> *inliers);
 
-
 RansacStats estimate_onefocal_relative_pose(const std::vector<Point2D> &points2D_1,
-                                            const std::vector<Point2D> &points2D_2, const Camera &camera2, const Point2D &pp1,
-                                            const RansacOptions &ransac_opt,
+                                            const std::vector<Point2D> &points2D_2, const Camera &camera2,
+                                            const Point2D &pp1, const RansacOptions &ransac_opt,
                                             const BundleOptions &bundle_opt, ImagePair *image_pair,
                                             std::vector<char> *inliers);
 

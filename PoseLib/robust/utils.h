@@ -66,10 +66,10 @@ int get_inliers(const CameraPose &pose, const std::vector<Point2D> &x1, const st
 int get_inliers(const Eigen::Matrix3d &E, const std::vector<Point2D> &x1, const std::vector<Point2D> &x2,
                 double sq_threshold, std::vector<char> *inliers);
 int get_inliers(const ThreeViewCameraPose &three_view_pose, const std::vector<Point2D> &x1,
-                const std::vector<Point2D> &x2, const std::vector<Point2D> &x3,
-                double sq_threshold, std::vector<char> *inliers);
+                const std::vector<Point2D> &x2, const std::vector<Point2D> &x3, double sq_threshold,
+                std::vector<char> *inliers);
 int get_inliers(const ImageTriplet &image_triplet, const std::vector<Point2D> &x1, const std::vector<Point2D> &x2,
-                const std::vector<Point2D> &x3, double sq_threshold, std::vector<char> *inliers, bool scaled=true);
+                const std::vector<Point2D> &x3, double sq_threshold, std::vector<char> *inliers, bool scaled = true);
 
 // inliers for homography
 void get_homography_inliers(const Eigen::Matrix3d &H, const std::vector<Point2D> &x1, const std::vector<Point2D> &x2,

@@ -107,7 +107,7 @@ struct alignas(32) ThreeViewCameraPose {
 
     const CameraPose pose23() const {
         Eigen::Matrix3d R23 = pose13.R() * pose12.R().transpose();
-        Eigen::Vector3d t23 = - R23 * pose12.t + pose13.t;
+        Eigen::Vector3d t23 = -R23 * pose12.t + pose13.t;
 
         return CameraPose(R23, t23);
     }
@@ -123,8 +123,10 @@ struct alignas(32) ImageTriplet {
 
     // Constructors (Defaults to identity camera)
     ImageTriplet() : poses(ThreeViewCameraPose()), camera1(Camera()), camera2(Camera()), camera3(Camera()) {}
-    ImageTriplet(ThreeViewCameraPose poses, Camera camera) : poses(poses), camera1(camera), camera2(camera), camera3(camera) {}
-    ImageTriplet(ThreeViewCameraPose poses, Camera camera1, Camera camera2, Camera camera3) : poses(poses), camera1(camera1), camera2(camera2), camera3(camera3) {}
+    ImageTriplet(ThreeViewCameraPose poses, Camera camera)
+        : poses(poses), camera1(camera), camera2(camera), camera3(camera) {}
+    ImageTriplet(ThreeViewCameraPose poses, Camera camera1, Camera camera2, Camera camera3)
+        : poses(poses), camera1(camera1), camera2(camera2), camera3(camera3) {}
 };
 
 typedef std::vector<ImagePair> ImagePairVector;

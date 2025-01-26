@@ -68,9 +68,9 @@ class RelativePoseEstimator {
 class ThreeViewRelativePoseEstimator {
   public:
     ThreeViewRelativePoseEstimator(const RansacOptions &ransac_opt, const std::vector<Point2D> &points2D_1,
-                                   const std::vector<Point2D> &points2D_2, const std::vector<Point2D> &points2D_3                                   )
+                                   const std::vector<Point2D> &points2D_2, const std::vector<Point2D> &points2D_3)
         : num_data(points2D_1.size()), opt(ransac_opt), x1(points2D_1), x2(points2D_2), x3(points2D_3),
-        sampler(num_data, sample_sz, opt.seed, opt.progressive_sampling, opt.max_prosac_iterations) {
+          sampler(num_data, sample_sz, opt.seed, opt.progressive_sampling, opt.max_prosac_iterations) {
         x1n.resize(sample_sz);
         x2n.resize(sample_sz);
         x1s.resize(sample_sz_13);
@@ -106,15 +106,15 @@ class ThreeViewSharedFocalRelativePoseEstimator {
     ThreeViewSharedFocalRelativePoseEstimator(const RansacOptions &ransac_opt, const std::vector<Point2D> &points2D_1,
                                               const std::vector<Point2D> &points2D_2,
                                               const std::vector<Point2D> &points2D_3)
-        : sample_sz(ransac_opt.use_homography ? 4 : 6),
-          num_data(points2D_1.size()), opt(ransac_opt), x1(points2D_1), x2(points2D_2), x3(points2D_3),
+        : sample_sz(ransac_opt.use_homography ? 4 : 6), num_data(points2D_1.size()), opt(ransac_opt), x1(points2D_1),
+          x2(points2D_2), x3(points2D_3),
           sampler(num_data, sample_sz, opt.seed, opt.progressive_sampling, opt.max_prosac_iterations),
-          tuples(opt.use_degensac ? std::vector<std::vector<int>>{
-                                        {0, 1, 2, 3, 4},
-                                        {0, 1, 2, 3, 5},
-                                        {0, 1, 2, 4, 5},
-                                        {0, 1, 3, 4, 5},
-                                        {1, 2, 3, 4, 5}} : std::vector<std::vector<int>>()){
+          tuples(opt.use_degensac ? std::vector<std::vector<int>>{{0, 1, 2, 3, 4},
+                                                                  {0, 1, 2, 3, 5},
+                                                                  {0, 1, 2, 4, 5},
+                                                                  {0, 1, 3, 4, 5},
+                                                                  {1, 2, 3, 4, 5}}
+                                  : std::vector<std::vector<int>>()) {
         x1n.resize(sample_sz);
         x2n.resize(sample_sz);
         x3n.resize(sample_sz);
@@ -125,7 +125,6 @@ class ThreeViewSharedFocalRelativePoseEstimator {
         best_h_inliers = 0;
         best_degenerate_model_found = false;
     }
-
 
     void generate_models(std::vector<ImageTriplet> *models);
     void estimate_homography(std::vector<ImageTriplet> *models);
@@ -161,18 +160,17 @@ class ThreeViewSharedFocalRelativePoseEstimator {
 class ThreeViewCase2RelativePoseEstimator {
   public:
     ThreeViewCase2RelativePoseEstimator(const RansacOptions &ransac_opt, const Camera &camera3,
-                                        const std::vector<Point2D> &points2D_1,
-                                              const std::vector<Point2D> &points2D_2,
-                                              const std::vector<Point2D> &points2D_3)
-        : sample_sz(ransac_opt.use_homography ? 4 : 6),
-          num_data(points2D_1.size()), opt(ransac_opt), x1(points2D_1), x2(points2D_2), x3(points2D_3), camera3(camera3),
+                                        const std::vector<Point2D> &points2D_1, const std::vector<Point2D> &points2D_2,
+                                        const std::vector<Point2D> &points2D_3)
+        : sample_sz(ransac_opt.use_homography ? 4 : 6), num_data(points2D_1.size()), opt(ransac_opt), x1(points2D_1),
+          x2(points2D_2), x3(points2D_3), camera3(camera3),
           sampler(num_data, sample_sz, opt.seed, opt.progressive_sampling, opt.max_prosac_iterations),
-          tuples(opt.use_degensac ? std::vector<std::vector<int>>{
-                                        {0, 1, 2, 3, 4},
-                                        {0, 1, 2, 3, 5},
-                                        {0, 1, 2, 4, 5},
-                                        {0, 1, 3, 4, 5},
-                                        {1, 2, 3, 4, 5}} : std::vector<std::vector<int>>()){
+          tuples(opt.use_degensac ? std::vector<std::vector<int>>{{0, 1, 2, 3, 4},
+                                                                  {0, 1, 2, 3, 5},
+                                                                  {0, 1, 2, 4, 5},
+                                                                  {0, 1, 3, 4, 5},
+                                                                  {1, 2, 3, 4, 5}}
+                                  : std::vector<std::vector<int>>()) {
         x1n.resize(sample_sz);
         x2n.resize(sample_sz);
         x3n.resize(sample_sz);
@@ -180,7 +178,7 @@ class ThreeViewCase2RelativePoseEstimator {
         x2s.resize(sample_sz_13);
         x3p.resize(sample_sz_13);
         x3u.resize(num_data);
-        for (size_t k = 0; k < num_data; ++k){
+        for (size_t k = 0; k < num_data; ++k) {
             Eigen::Vector2d x;
             camera3.unproject(x3[k], &x);
             x3u[k] = x.homogeneous().normalized();
@@ -192,7 +190,6 @@ class ThreeViewCase2RelativePoseEstimator {
         best_h_inliers = 0;
         best_degenerate_model_found = false;
     }
-
 
     void generate_models(std::vector<ImageTriplet> *models);
     void estimate_homography_p3p(std::vector<ImageTriplet> *models);
@@ -229,17 +226,16 @@ class ThreeViewCase2RelativePoseEstimator {
 class ThreeViewCase3RelativePoseEstimator {
   public:
     ThreeViewCase3RelativePoseEstimator(const RansacOptions &ransac_opt, const std::vector<Point2D> &points2D_1,
-                                              const std::vector<Point2D> &points2D_2,
-                                              const std::vector<Point2D> &points2D_3)
+                                        const std::vector<Point2D> &points2D_2, const std::vector<Point2D> &points2D_3)
         : sample_sz(ransac_opt.use_homography ? 4 : 6), sample_sz_13(ransac_opt.use_homography ? 3 : 4),
           num_data(points2D_1.size()), opt(ransac_opt), x1(points2D_1), x2(points2D_2), x3(points2D_3),
           sampler(num_data, sample_sz, opt.seed, opt.progressive_sampling, opt.max_prosac_iterations),
-          tuples(opt.use_degensac ? std::vector<std::vector<int>>{
-                                        {0, 1, 2, 3, 4},
-                                        {0, 1, 2, 3, 5},
-                                        {0, 1, 2, 4, 5},
-                                        {0, 1, 3, 4, 5},
-                                        {1, 2, 3, 4, 5}} : std::vector<std::vector<int>>()){
+          tuples(opt.use_degensac ? std::vector<std::vector<int>>{{0, 1, 2, 3, 4},
+                                                                  {0, 1, 2, 3, 5},
+                                                                  {0, 1, 2, 4, 5},
+                                                                  {0, 1, 3, 4, 5},
+                                                                  {1, 2, 3, 4, 5}}
+                                  : std::vector<std::vector<int>>()) {
         x1n.resize(sample_sz);
         x2n.resize(sample_sz);
         x3n.resize(sample_sz);
@@ -251,7 +247,6 @@ class ThreeViewCase3RelativePoseEstimator {
         best_h_inliers = 0;
         best_degenerate_model_found = false;
     }
-
 
     void generate_models(std::vector<ImageTriplet> *models);
     void estimate_homography_p3p(std::vector<ImageTriplet> *models);
@@ -286,18 +281,17 @@ class ThreeViewCase3RelativePoseEstimator {
 class ThreeViewCase4RelativePoseEstimator {
   public:
     ThreeViewCase4RelativePoseEstimator(const RansacOptions &ransac_opt, const Camera &camera3,
-                                        const std::vector<Point2D> &points2D_1,
-                                        const std::vector<Point2D> &points2D_2,
+                                        const std::vector<Point2D> &points2D_1, const std::vector<Point2D> &points2D_2,
                                         const std::vector<Point2D> &points2D_3)
         : sample_sz(ransac_opt.use_homography ? 4 : 6), sample_sz_13(ransac_opt.use_homography ? 3 : 4),
-          num_data(points2D_1.size()), opt(ransac_opt), x1(points2D_1), x2(points2D_2), x3(points2D_3), camera3(camera3),
-          sampler(num_data, sample_sz, opt.seed, opt.progressive_sampling, opt.max_prosac_iterations),
-          tuples(opt.use_degensac ? std::vector<std::vector<int>>{
-                                        {0, 1, 2, 3, 4},
-                                        {0, 1, 2, 3, 5},
-                                        {0, 1, 2, 4, 5},
-                                        {0, 1, 3, 4, 5},
-                                        {1, 2, 3, 4, 5}} : std::vector<std::vector<int>>()){
+          num_data(points2D_1.size()), opt(ransac_opt), x1(points2D_1), x2(points2D_2), x3(points2D_3),
+          camera3(camera3), sampler(num_data, sample_sz, opt.seed, opt.progressive_sampling, opt.max_prosac_iterations),
+          tuples(opt.use_degensac ? std::vector<std::vector<int>>{{0, 1, 2, 3, 4},
+                                                                  {0, 1, 2, 3, 5},
+                                                                  {0, 1, 2, 4, 5},
+                                                                  {0, 1, 3, 4, 5},
+                                                                  {1, 2, 3, 4, 5}}
+                                  : std::vector<std::vector<int>>()) {
         x1n.resize(sample_sz);
         x2n.resize(sample_sz);
         x3n.resize(sample_sz);
@@ -309,13 +303,12 @@ class ThreeViewCase4RelativePoseEstimator {
         sample.resize(sample_sz);
         K3 = Eigen::DiagonalMatrix<double, 3>(camera3.focal(), camera3.focal(), 1.0);
         x3u.resize(num_data);
-        for (size_t k = 0; k < num_data; ++k){
+        for (size_t k = 0; k < num_data; ++k) {
             Eigen::Vector2d x;
             camera3.unproject(x3[k], &x);
             x3u[k] = x.homogeneous().normalized();
         }
     }
-
 
     void generate_models(std::vector<ImageTriplet> *models);
     void estimate_homography_p3p(std::vector<ImageTriplet> *models);
@@ -390,12 +383,12 @@ class SharedFocalRelativePoseEstimator {
                                      const std::vector<Point2D> &points2D_2)
         : num_data(points2D_1.size()), opt(ransac_opt), x1(points2D_1), x2(points2D_2),
           sampler(num_data, sample_sz, opt.seed, opt.progressive_sampling, opt.max_prosac_iterations),
-          tuples(opt.use_degensac ? std::vector<std::vector<int>>{
-                                        {0, 1, 2, 3, 4},
-                                        {0, 1, 2, 3, 5},
-                                        {0, 1, 2, 4, 5},
-                                        {0, 1, 3, 4, 5},
-                                        {1, 2, 3, 4, 5}} : std::vector<std::vector<int>>()) {
+          tuples(opt.use_degensac ? std::vector<std::vector<int>>{{0, 1, 2, 3, 4},
+                                                                  {0, 1, 2, 3, 5},
+                                                                  {0, 1, 2, 4, 5},
+                                                                  {0, 1, 3, 4, 5},
+                                                                  {1, 2, 3, 4, 5}}
+                                  : std::vector<std::vector<int>>()) {
         x1s.resize(sample_sz);
         x2s.resize(sample_sz);
         sample.resize(sample_sz);
@@ -461,12 +454,10 @@ class RelativeOneFocalPoseEstimator {
     Eigen::DiagonalMatrix<double, 3> K2_inv;
     std::vector<Point2D> x2_unproj;
 
-
     RandomSampler sampler;
     // pre-allocated vectors for sampling
     std::vector<Eigen::Vector3d> x1s, x2s;
     std::vector<size_t> sample;
-
 };
 
 class GeneralizedRelativePoseEstimator {
