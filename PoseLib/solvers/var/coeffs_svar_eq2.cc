@@ -1,14 +1,13 @@
 #include "PoseLib/solvers/var/coeff.h"
 
 #include <Eigen/Dense>
-using namespace Eigen;
 
-MatrixXd svar_eq2(double a0, double a1, double a2, double a3, double a4, double a5, double b0, double b1, double b2,
+Eigen::MatrixXd svar_eq2(double a0, double a1, double a2, double a3, double a4, double a5, double b0, double b1, double b2,
                   double b3, double b4, double b5, double c0, double c1, double c2, double c3, double c4, double c5,
                   double d0, double d1, double d2, double d3, double d4, double d5) {
 
-    MatrixXd sols(1, 16);
-    //   Matrix<long double, Dynamic, Dynamic> sols(1, 28);
+    Eigen::MatrixXd sols(1, 16);
+    //   Eigen::Matrix<long double, Dynamic, Dynamic> sols(1, 28);
     sols << 4 * pow(b1, 3) * pow(d5, 3) - 4 * pow(b5, 3) * pow(d1, 3) + 4 * b0 * pow(b3, 2) * pow(d1, 3) -
                 pow(b0, 2) * b1 * pow(d3, 3) + 16 * b0 * pow(b4, 2) * pow(d1, 3) + 4 * b0 * pow(b5, 2) * pow(d1, 3) +
                 4 * b1 * pow(b2, 2) * pow(d3, 3) + pow(b0, 2) * b1 * pow(d5, 3) - 8 * pow(b0, 2) * b2 * pow(d4, 3) -

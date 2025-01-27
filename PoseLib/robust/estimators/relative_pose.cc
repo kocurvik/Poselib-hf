@@ -306,8 +306,12 @@ void ThreeViewSharedFocalRelativePoseEstimator::estimate_homography_p3p(std::vec
     if (sols_2 == 0)
         return;
 
-    std::vector<double> focals = solver_homo3f(H12, H13);
-    focals = solver_homo3f(H12, H13);
+    std::vector<double> focals;
+    if (opt.use_baseline) {
+        focals = solver_homo3f_baseline(H12, H13);
+    } else {
+        focals = solver_homo3f(H12, H13);
+    }
 
     //    std::cout << "Focals size: " << focals.size() << std::endl;
 

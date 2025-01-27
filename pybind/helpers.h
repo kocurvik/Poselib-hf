@@ -51,6 +51,7 @@ void update_ransac_options(const py::dict &input, RansacOptions &ransac_opt) {
     update(input, "f2_gt", ransac_opt.f2_gt);
     update(input, "f3_gt", ransac_opt.f3_gt);
     update(input, "f_oracle_threshold", ransac_opt.f_oracle_threshold);
+    update(input, "use_baseline", ransac_opt.use_baseline);
 }
 
 void update_bundle_options(const py::dict &input, BundleOptions &bundle_opt) {

@@ -63,6 +63,7 @@ struct RansacOptions {
     double f2_gt = 1;
     double f3_gt = 1;
     double f_oracle_threshold = 0.0;
+    bool use_baseline = false;
 };
 
 struct RansacStats {
